@@ -2,7 +2,7 @@
 # Welcome {.unnumbered}
 
 <!--
-![](./images/predictive-modeling-book-banner.webp){fig-align="center" fig-alt="Predictive Modeling in Python (banner image)" height=400}
+![](./images/predictive-modeling-book-banner.png){fig-align="center" fig-alt="Predictive Modeling in Python (banner image)" height=400}
 -->
 
 Welcome to the \"Predictive Modeling in Python\" book (2024 edition, online)!

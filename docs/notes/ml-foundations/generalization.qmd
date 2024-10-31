@@ -14,7 +14,7 @@ In the context of generalization, bias and variance represent two types of error
 
 On the other hand, **variance** refers to errors caused by overly complex models that fit the training data too closely, capturing noise along with the signal. This leads the model to perform well on the training data, but poorly on unseen test data.
 
-![Illustration of bias vs variance, using a bull's eye. Source: [Gudivada 2017 Data](https://www.researchgate.net/publication/318432363_Data_Quality_Considerations_for_Big_Data_and_Machine_Learning_Going_Beyond_Data_Cleaning_and_Transformations).](./../../images/bias-variance-tradeoff.ppm)
+![Illustration of bias vs variance, using a bull's eye. Source: [Gudivada 2017 Data](https://www.researchgate.net/publication/318432363_Data_Quality_Considerations_for_Big_Data_and_Machine_Learning_Going_Beyond_Data_Cleaning_and_Transformations).](./../../images/bias-variance-tradeoff.png)
 
 Using an analogy of darts on a bull's eye, low bias means the predictions are accurately centered around the optimal target, whereas high bias means the attempts are consistently off the mark. Low variance means all the attempts are concentrated in a specific region, whereas high variance means the attempts are spread out over a wider region. The goal is to achieve results  which are accurate (with low bias), and consistent (with low variance).
 
@@ -120,7 +120,7 @@ This section provides some practical methods for splitting data in Python.
 In most machine learning problems, we typically perform a **shuffled split**, where the order of the data is randomized before partitioning it into training and testing sets. This randomization helps ensure the distribution in the training set closely resembles that of the test set, reducing potential biases that could skew model performance.
 
 
-![Shuffled train/test split. Source: [Real Python](https://files.realpython.com/media/fig-1.c489adc748c8.png).](./../../images/shuffled-train-test-split.webp)
+![Shuffled train/test split. Source: [Real Python](https://files.realpython.com/media/fig-1.c489adc748c8.png).](./../../images/shuffled-train-test-split.png){height=375}
 
 One major benefit of shuffling is that it helps prevent **sequential bias**, which occurs when the order of the data affects the model's ability to generalize. Sequential bias can lead to inconsistencies in predictions, especially if certain patterns or trends exist in the sequence of the data. For example:
 

@@ -5,7 +5,7 @@
 
 **Predictive modeling** refers to the use of statistical techniques and machine learning algorithms to predict future outcomes based on historical data. It involves creating models that learn patterns from past observations and use them to forecast future trends or behavior. At its core, predictive modeling is about understanding the relationships between variables and using these relationships to make informed predictions.
 
-![A seven day weather forecast. [Source](https://i0.wp.com/www.metgraphics.net/wp-content/uploads/2018/09/T52-7-Day.jpg?ssl=1).](./../images/weather-forecast-7-day-outlook.webp)
+![A seven day weather forecast. [Source](https://i0.wp.com/www.metgraphics.net/wp-content/uploads/2018/09/T52-7-Day.jpg?ssl=1).](./../images/weather-forecast-7-day-outlook.png)
 
 ## Relevance of Predictive Modeling in Finance
 

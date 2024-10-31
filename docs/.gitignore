@@ -1,3 +1,11 @@
 /.quarto/
 
 .jupyter_cache
+
+*.aux
+
+*.tex
+
+*.toc
+
+*.pdf
