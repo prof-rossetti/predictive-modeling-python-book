@@ -94,8 +94,8 @@ book:
   # shows up at bottom of page
   #body-footer: "&copy; Copyright 2024, Your Name Here"
 
-  #page-footer:
-  #  center: "&copy; Copyright 2024, Your Name Here"
+  page-footer:
+    center: "&copy; Copyright 2024, Michael J Rossetti"
 
 
 bibliography: references.bib
