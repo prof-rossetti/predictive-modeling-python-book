@@ -1,0 +1,136 @@
+project:
+  type: book
+  output-dir: _build
+  preview:
+    port: 6833 # use the same port instead of a new one each time
+    browser: true
+
+# https://quarto.org/docs/books/
+# https://quarto.org/docs/reference/projects/books.html
+book:
+  title: "Predictive Modeling in Python"
+  author: "Michael J Rossetti"
+  date: "last-modified" # "7/24/2024"
+  date-format: "iso"
+  #doi: "...."
+  #isbn: "..."
+  #issn: "..."
+  #edition: "v2"
+
+  site-url: https://prof-rossetti.github.io/predictive-modeling-python-book/
+  repo-url: https://github.com/prof-rossetti/predictive-modeling-python-book/
+  repo-branch: main
+  repo-subdir: docs
+  repo-actions: [edit, issue, source]
+  #downloads: [pdf, epub, docx]
+
+  #cover-image: cover.png
+  #favicon: favicon.ico
+
+  #sharing: [twitter, facebook]
+
+  # https://quarto.org/docs/websites/website-tools.html#open-graph
+  #open-graph: true
+
+  # https://quarto.org/docs/websites/website-tools.html#google-analytics
+  # doesn't work for github pages?
+  # see html: include-in-header option at bottom instead ..
+  # jk use tracking id as well?
+  # https://github.com/quarto-dev/quarto-cli/discussions/9065
+  #google-analytics:
+  #  tracking-id: "G-...."
+  # jk still doesn't work. see include-in-header option ...
+
+  # https://quarto.org/docs/reference/projects/books.html#search
+  search: #true
+    location: sidebar # navbar, sidebar
+    #type: textbox # overlay, textbox
+
+  #navbar:
+  #  right:
+  #    - href: exercises/index.qmd
+  #      text: "Exercises, Assignments, and Projects"
+  #    - about-author.qmd
+
+  # https://quarto.org/docs/websites/website-navigation.html#side-navigation
+  #sidebar:
+  #  logo: images/python-banner.jpeg
+
+  #page-footer:
+  #  left: |
+  #    Copyright 2024, <a href="https://prof-rossetti.org/">Michael J Rossetti</a>
+  #  right: |
+  #    This book was built with <a href="https://quarto.org/">Quarto</a>.
+
+
+
+  chapters:
+    - index.qmd
+    #- why-python.qmd
+
+    #- part: "Development Tools"
+    #  #href:  notes/dev-tools/index.qmd
+    #  chapters:
+    #    - href:  notes/dev-tools/index.qmd
+    #      text: "Development Tools Overview"
+    #    - href: notes/dev-tools/google-colab/overview.qmd
+    #      text: "Google Colab Notebooks"
+    #    - notes/dev-tools/google-colab/pip.ipynb
+
+
+
+    - "-----------------"
+    - about-author.qmd
+    - "-----------------"
+
+  #appendices:
+  #
+  #  - part: "Custom Functions In-Depth"
+  #    chapters:
+  #      - notes/python-lang/control-flow/function-docs.qmd
+  #      - notes/python-lang/control-flow/unit-testing.qmd
+
+
+  # shows up at bottom of page
+  #body-footer: "&copy; Copyright 2024, Your Name Here"
+
+  #page-footer:
+  #  center: "&copy; Copyright 2024, Your Name Here"
+
+
+bibliography: references.bib
+
+format:
+  html:
+    # https://quarto.org/docs/output-formats/html-themes.html
+    # https://bootswatch.com/
+    theme: cosmo
+      #light: default #flatly
+      #dark: darkly
+    #css: styles/my-style.css
+    code-copy: true
+    #code-fold: false #show
+    ##code-line-numbers: true
+    #toc: true
+    ##toc-depth: 3 # specify the number of section levels to include in the table of contents
+    ##toc-expand: 3 # specify how much of the table of contents to show initially (defaults to 1 with auto-expansion as the user scrolls)
+    #toc-expand: true # show all levels?
+    ##toc-location: left
+    ##number-sections: false
+    ##number-depth: 1
+
+    # https://quarto.org/docs/reference/formats/html.html#includes
+    #include-in-header:
+    #  text: |
+    #    <!-- Google tag (gtag.js) -->
+    #    <script async src="https://www.googletagmanager.com/gtag/js?id=G-...."></script>
+    #    <script>
+    #      window.dataLayer = window.dataLayer || [];
+    #      function gtag(){dataLayer.push(arguments);}
+    #      gtag('js', new Date());
+    #
+    #      gtag('config', 'G-....');
+    #    </script>
+
+  #pdf:
+  #  documentclass: scrreprt
