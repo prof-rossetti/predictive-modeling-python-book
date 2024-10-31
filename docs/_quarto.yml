@@ -22,7 +22,7 @@ book:
   repo-branch: main
   repo-subdir: docs
   repo-actions: [edit, issue, source]
-  #downloads: [pdf, epub, docx]
+  downloads: [pdf, epub, docx]
 
   cover-image: images/predictive-modeling-book-banner.webp
   #favicon: favicon.ico
@@ -132,5 +132,5 @@ format:
     #      gtag('config', 'G-....');
     #    </script>
 
-  #pdf:
-  #  documentclass: scrreprt
+  pdf:
+    documentclass: scrreprt
