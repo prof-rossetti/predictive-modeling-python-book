@@ -24,7 +24,7 @@ book:
   repo-actions: [edit, issue, source]
   #downloads: [pdf, epub, docx]
 
-  #cover-image: cover.png
+  cover-image: images/predictive-modeling-book-banner.webp
   #favicon: favicon.ico
 
   #sharing: [twitter, facebook]
@@ -104,7 +104,7 @@ format:
   html:
     # https://quarto.org/docs/output-formats/html-themes.html
     # https://bootswatch.com/
-    theme: cosmo
+    theme: pulse
       #light: default #flatly
       #dark: darkly
     #css: styles/my-style.css
