@@ -66,16 +66,111 @@ book:
 
   chapters:
     - index.qmd
-    #- why-python.qmd
+    - notes/predictive-modeling.qmd
 
-    #- part: "Development Tools"
-    #  #href:  notes/dev-tools/index.qmd
+    - part: "Machine Learning Foundations"
+      chapters:
+        - href: notes/ml-foundations/index.qmd
+          text: "Machine Learning Overview"
+
+        - href: notes/ml-foundations/generalization.qmd
+          text: "Generalization"
+
+        - href: notes/ml-foundations/data-encoding.qmd
+          text: "Data Encoding"
+
+        - href: notes/ml-foundations/data-scaling.qmd
+          text: "Data Scaling"
+
+    #- part: "Supervised Learning"
     #  chapters:
-    #    - href:  notes/dev-tools/index.qmd
-    #      text: "Development Tools Overview"
-    #    - href: notes/dev-tools/google-colab/overview.qmd
-    #      text: "Google Colab Notebooks"
-    #    - notes/dev-tools/google-colab/pip.ipynb
+    #    - href: notes/supervised-learning/index.qmd
+    #      text: "Supervised Learning Overview"
+    #
+#
+    #          - section:
+    #            href: notes/predictive-modeling/regression/index.qmd
+    #            text: "Regression"
+    #            contents:
+    #              - section:
+    #                href: notes/predictive-modeling/regression/linear.qmd
+    #                text: "Linear Regression w/ sklearn"
+    #              - section:
+    #                href: notes/predictive-modeling/regression/ols.qmd
+    #                text: "Linear Regression w/ statsmodels"
+    #              - section:
+    #                href: notes/predictive-modeling/regression/multiple-features.qmd
+    #                text: "Regression with Multiple Features"
+#
+    #          - section:
+    #            href: notes/predictive-modeling/time-series-forecasting/index.qmd
+    #            text: "Regression for Time-series Forecasting"
+    #            contents:
+    #              - section:
+    #                href: notes/predictive-modeling/time-series-forecasting/polynomial.qmd
+    #                text: "Polynomial Features"
+    #              - section:
+    #                href: notes/predictive-modeling/time-series-forecasting/seasonality.qmd
+    #                text: "Seasonality Analysis"
+#
+    #          - section:
+    #            href: notes/predictive-modeling/autoregressive-models/index.qmd
+    #            text: "Autoregressive Models for Time-series Forecasting"
+    #            contents:
+    #              - section:
+    #                href: notes/predictive-modeling/autoregressive-models/stationarity.qmd
+    #                text: "Stationarity"
+    #              - section:
+    #                href: notes/predictive-modeling/autoregressive-models/autocorrelation.qmd
+    #                text: "Autocorrelation"
+    #              - section:
+    #                href: notes/predictive-modeling/autoregressive-models/arima.qmd
+    #                text: "Autoregressive Models w/ statsmodels"
+#
+    #          - section:
+    #            href: notes/predictive-modeling/classification/index.qmd
+    #            text: "Classification"
+    #            contents:
+    #              - section:
+    #                href: notes/predictive-modeling/classification/binary.qmd
+    #                text: "Binary Classification"
+    #              - section:
+    #                href: notes/predictive-modeling/classification/multiclass.qmd
+    #                text: "Multi-class Classification"
+#
+    #      #- "--------------"
+    #      - section:
+    #        href: notes/predictive-modeling/unsupervised-learning.qmd
+    #        text: "Unsupervised Learning"
+    #        contents:
+#
+    #          - section:
+    #            href: notes/predictive-modeling/dimensionality-reduction/pca.qmd
+    #            text: "Dimensionality Reduction"
+#
+    #          - section:
+    #            href: notes/predictive-modeling/clustering/index.qmd
+    #            text: "Clustering"
+#
+#
+    #      #- "--------------"
+    #      - section:
+    #        href: notes/predictive-modeling/model-management/index.qmd
+    #        text: "Model Management"
+    #        contents:
+    #          - section:
+    #            href: notes/predictive-modeling/model-management/saving-loading.qmd
+    #            text: "Model Management"
+    #          - section:
+    #            href: notes/predictive-modeling/model-management/deploying.qmd
+    #            text: "Model Deployment"
+    #          - section:
+    #            href: notes/predictive-modeling/model-optimization/grid-search.qmd
+    #            text: "Model Optimization"
+
+
+
+
 
 
 
@@ -111,10 +206,9 @@ format:
     code-copy: true
     #code-fold: false #show
     ##code-line-numbers: true
-    #toc: true
-    ##toc-depth: 3 # specify the number of section levels to include in the table of contents
-    ##toc-expand: 3 # specify how much of the table of contents to show initially (defaults to 1 with auto-expansion as the user scrolls)
-    #toc-expand: true # show all levels?
+    toc: true
+    #toc-depth: 4 # specify the number of section levels to include in the table of contents
+    toc-expand: true # show x levels initially
     ##toc-location: left
     ##number-sections: false
     ##number-depth: 1

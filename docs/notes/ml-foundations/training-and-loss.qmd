@@ -1,0 +1,17 @@
+# Model Training and Evaluation
+
+maximizing some objective, and measuring it.
+
+Some models are "closed-form" models, which use a predetermined function to arrive at the ideal weights. The Linear Regression is one example of this.
+
+Other models use an "iterative optimization" technique to arrive at the ideal weights over a number of simulated trial periods, or "epochs". Deep learning models rely on this iterative optimization approach.
+
+
+## Model Evaluation
+
+different metrics for regression vs classification
+
+### Regression Metrics
+
+
+### Classification Metrics
