@@ -226,23 +226,24 @@ format:
     #      gtag('config', 'G-....');
     #    </script>
 
-  pdf:
-    documentclass: scrreprt
-
-  epub:
-    toc: true # include a table of contents
-    cover-image: images/predictive-modeling-book-banner.png
-    number-sections: true # number the sections
-    #css: "custom-epub.css"
-    embed-fonts: true
-    metadata:
-      identifier: "urn:isbn:1234567890" # replace with actual ISBN or identifier
-      publisher: "Publisher Name"
-      rights: "© 2024 Your Name. All rights reserved."
-
-  docx:
-    #reference-doc: "custom-reference.docx" # optional reference document for styling
-    number-sections: true # number the sections
-    toc: true # include a table of contents
-    toc-depth: 2 # control depth of table of contents
-    embed-fonts: true # embed fonts in the DOCX
+  # THIS IS NOT WORKING YET ON GITHUB ACTIONS
+  #pdf:
+  #  documentclass: scrreprt
+  #
+  #epub:
+  #  toc: true # include a table of contents
+  #  cover-image: images/predictive-modeling-book-banner.png
+  #  number-sections: true # number the sections
+  #  #css: "custom-epub.css"
+  #  embed-fonts: true
+  #  metadata:
+  #    identifier: "urn:isbn:1234567890" # replace with actual ISBN or identifier
+  #    publisher: "Publisher Name"
+  #    rights: "© 2024 Your Name. All rights reserved."
+  #
+  #docx:
+  #  #reference-doc: "custom-reference.docx" # optional reference document for styling
+  #  number-sections: true # number the sections
+  #  toc: true # include a table of contents
+  #  toc-depth: 2 # control depth of table of contents
+  #  embed-fonts: true # embed fonts in the DOCX

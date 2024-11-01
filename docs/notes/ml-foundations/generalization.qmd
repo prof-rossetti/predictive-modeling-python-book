@@ -91,7 +91,7 @@ In practice, we often use a **validation set** in addition to the training and t
 
 After training the model on the training data, we evaluate its performance on the validation set. This process can be repeated iteratively, adjusting hyperparameters and retraining the model until the performance is satisfactory.
 
-![Workflow using validation set. Source: [Google ML Concepts](https://developers.google.com/machine-learning/crash-course/overfitting/dividing-datasets).](./../../images/workflow-with-validation-set.svg)
+![Workflow using validation set. Source: [Google ML Concepts](https://developers.google.com/machine-learning/crash-course/overfitting/dividing-datasets).](./../../images/workflow-with-validation-set.png)
 
 Once we believe the model is well-optimized, we use the test set to evaluate its true generalization ability on unseen data. By limiting the model's exposure to the test set until the final evaluation, we ensure that the test results provide an unbiased estimate of real-world performance.
 
