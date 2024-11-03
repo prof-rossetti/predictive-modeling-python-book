@@ -82,26 +82,25 @@ book:
         - href: notes/ml-foundations/data-scaling.qmd
           text: "Data Scaling"
 
-    #- part: "Supervised Learning"
-    #  chapters:
-    #    - href: notes/supervised-learning/index.qmd
-    #      text: "Supervised Learning Overview"
-    #
-#
-    #          - section:
-    #            href: notes/predictive-modeling/regression/index.qmd
-    #            text: "Regression"
-    #            contents:
-    #              - section:
-    #                href: notes/predictive-modeling/regression/linear.qmd
-    #                text: "Linear Regression w/ sklearn"
-    #              - section:
-    #                href: notes/predictive-modeling/regression/ols.qmd
-    #                text: "Linear Regression w/ statsmodels"
-    #              - section:
-    #                href: notes/predictive-modeling/regression/multiple-features.qmd
-    #                text: "Regression with Multiple Features"
-#
+    #- "-------------"
+    #- href: notes/supervised-learning.qmd
+    #  text: "Supervised Learning Overview"
+
+    - part: "Regression"
+      chapters:
+        - href: notes/regression/index.qmd
+          text: "Regression Overview"
+
+        - href: notes/regression/linear.qmd
+          text: "Linear Regression w/ sklearn"
+
+        - href: notes/regression/ols.qmd
+          text: "Linear Regression w/ statsmodels"
+
+        - href: notes/regression/multiple-features.qmd
+          text: "Regression with Multiple Features"
+
+
     #          - section:
     #            href: notes/predictive-modeling/time-series-forecasting/index.qmd
     #            text: "Regression for Time-series Forecasting"

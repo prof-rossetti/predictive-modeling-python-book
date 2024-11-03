@@ -1,0 +1,236 @@
+---
+#format:
+#  html:
+#    code-fold: false
+jupyter: python3
+execute:
+  cache: true # re-render only when source changes
+---
+
+# Linear Regression with `sklearn`
+
+Let's explore linear regression using an example dataset of student grades. Our goal will be to train a model to predict a student's grade given the number of hours they have studied.
+
+## Data Loading
+
+Loading the data:
+
+```{python}
+#| code-overflow: scroll
+
+from pandas import read_csv
+
+repo_url = "https://raw.githubusercontent.com/prof-rossetti/python-for-finance"
+request_url = f"{repo_url}/main/docs/data/grades.csv"
+
+df = read_csv(request_url)
+print(len(df))
+df.head()
+```
+
+## Data Exploration
+
+Checking for null values:
+
+```{python}
+df["StudyHours"].isna().sum()
+```
+
+```{python}
+df.tail()
+```
+
+For "Ali", we don't have a grade or number of study hours, so we should drop that row.
+
+For "Juan", since there is no label, we can't use this record to train the model, but we could use the trained model to predict their grade later (given 8 study hours).
+
+Dropping nulls:
+
+```{python}
+df.dropna(inplace=True)
+df.tail()
+```
+
+Exploring relationship between variables:
+
+
+```{python}
+import plotly.express as px
+
+px.scatter(df, x="StudyHours", y="Grade", height=350,
+            title="Relationship between Study Hours and Grades",
+            trendline="ols", trendline_color_override="red",
+)
+```
+
+Checking for normality and outliers:
+
+```{python}
+px.violin(df, x="StudyHours", box=True, points="all", height=350,
+    title="Distribution of Study Hours",
+)
+```
+
+```{python}
+px.violin(df, x="Grade", box=True, points="all", height=350,
+            title="Distribution of Grade"
+)
+```
+
+## Data Splitting
+
+### X/Y Split
+
+Identifying the dependent and independent variables.
+
+```{python}
+#x = df["StudyHours"] # ValueError: Expected 2D array, got 1D array instead
+x = df[["StudyHours"]] # model wants x to be a matrix / DataFrame
+print(x.shape)
+
+y = df["Grade"]
+print(y.shape)
+```
+
+:::{.callout-note title="Note"}
+When using `sklearn`, we must construct the features as a two-dimensional array (even if the data only contains one column).
+:::
+
+### Train Test Split
+
+Splitting the data randomly into test and training sets. We will train the model on the training set, and evaluate the model using the test set. This helps for generalizability, and to prevent overfitting.
+
+```{python}
+from sklearn.model_selection import train_test_split
+
+x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=99)
+print("TRAIN:", x_train.shape, y_train.shape)
+print("TEST:", x_test.shape, y_test.shape)
+```
+
+## Model Selection and Training
+
+Selecting a linear regression (OLS), and training it on the training data to learn the ideal weights:
+
+```{python}
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression()
+
+model.fit(x_train, y_train)
+```
+
+After the model is trained, we have access to the ideal weights (i.e. "coefficients"). There is one coefficient for each feature (in this case only one: number of hours studied).
+
+```{python}
+print("COEFS:", model.coef_.round(3)) # one for each feature
+print("Y INTERCEPT:", model.intercept_.round(3))
+```
+
+:::{.callout-note title="Note"}
+The convention with `sklearn` models is that any methods or properties ending with an underscore (`_`), like `coef_` and `intercept_` are only available after the model has been trained.
+:::
+
+When we have multiple coefficients, it will be helpful to wrap them in a `Series` to see which weights correspond with which features (although in this case there is only one feature):
+
+```{python}
+from pandas import Series
+
+coefs = Series(model.coef_, index=model.feature_names_in_)
+print(coefs)
+```
+
+
+The coefficients and y-intercept tell us the line of best fit:
+
+```{python}
+print("--------------")
+print(f"EQUATION FOR LINE OF BEST FIT:")
+print(f"y = ({round(model.coef_[0], 3)} * StudyHours) + {round(model.intercept_, 3)}")
+```
+
+## Model Predictions and Evaluation
+
+Alright, we trained the model, but how well does it do in making predictions?
+
+We use the trained model to make predictions on the unseen (test) data:
+
+```{python}
+y_pred = model.predict(x_test)
+print(y_pred)
+```
+
+We can then compare each of the predicted values against the actual known values:
+
+```{python}
+# get all rows from the original dataset that wound up in the test set:
+test_set = df.loc[x_test.index].copy()
+
+# create a column for the predictions:
+test_set["PredictedGrade"] = y_pred.round(1)
+
+# calculate error for each datapoint:
+test_set["Error"] = (y_pred - y_test).round(1)
+
+test_set.sort_values(by="StudyHours", ascending=False)
+```
+
+Plotting the errors on a graph:
+
+```{python}
+px.scatter(test_set, x="StudyHours", y=["Grade", "PredictedGrade"],
+           hover_data="Name", height=350,
+           title=f"Prediction errors (test set)",
+           labels={"value":""}
+)
+```
+
+To get a measure for how well the model did across the entire test dataset, we can use any number of desired regression metrics (r-squared score, mean squared error, mean absolute error, root mean sqared error), to see how well the model does.
+
+
+It is possible for us to compute our own metrics:
+
+```{python}
+my_mae = test_set["Error"].abs().mean()
+print("MY MAE:", my_mae.round(3))
+```
+
+```{python}
+my_mse = (test_set["Error"] ** 2).mean()
+print("MY MSE:", my_mse.round(1))
+```
+
+However more commonly we will use metric functions from the [`sklearn.metrics` submodule](https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics):
+
+
+```{python}
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+r2 = r2_score(y_test, y_pred)
+print("R^2:", round(r2, 3))
+
+mae = mean_absolute_error(y_test, y_pred)
+print("MAE:", round(mae, 3))
+
+mse = mean_squared_error(y_test, y_pred)
+print("MSE:", round(mse,3))
+```
+
+```{python}
+rmse = mse ** .5
+print("RMSE:", rmse.round(3))
+```
+
+## Inference
+
+Now that the model has been trained and deemed to have a sufficient performance, we can use it to make predictions on unseen data (sometimes called "inference"):
+
+```{python}
+from pandas import DataFrame
+
+x_new = DataFrame({"StudyHours": [0, 4, 8, 12, 16, 20]})
+
+model.predict(x_new)
+```
+
+Alright, we have trained a model and used it to make predictions.

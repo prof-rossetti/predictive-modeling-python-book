@@ -47,7 +47,6 @@ Example supervised learning tasks include:
   + **Classification**, where the variable we are trying to predict is categorical or discrete (e.g. whether or not an applicant will default on a loan).
 
 
-
 ### Unsupervised Learning
 
 In contrast, **unsupervised learning** deals with data that lacks labeled outcomes. The model is tasked with finding patterns or groupings in the data without any explicit guidance. While supervised learning focuses on predicting specific outcomes, unsupervised learning seeks to uncover hidden structures or relationships within the data.

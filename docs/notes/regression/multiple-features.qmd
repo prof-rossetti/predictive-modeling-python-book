@@ -1,0 +1,397 @@
+---
+#format:
+#  html:
+#    code-fold: false
+jupyter: python3
+execute:
+  cache: true # re-render only when source changes
+---
+
+
+# Regression with Multiple Features
+
+So far we have covered an example of regression using a single feature variable to predict the target variable.
+
+However in practice, it is common to use multiple features, each of which may contribute to improving the model's performance.
+
+## Considerations
+
+When working with multiple features, there is a trade-off between **model performance** and **model complexity**. A model with billions of features, and consequently billions of parameters, can be slower to train and may lead to increased storage and computational costs when deployed. In many cases, a simpler model with fewer features that performs nearly as well can be preferable, especially if it offers faster training, lower deployment costs, and improved interpretability. This trade-off between model complexity and performance should be evaluated based on the specific requirements of the use case, such as the need for speed, scalability, or accuracy.
+
+As previously discussed, one consideration when using multiple features is the potential need to perform [data scaling](../ml-foundations/data-scaling.qmd), to standardize the scale of all the features, and ensure features with large values aren't dominating the model. Although, for linear regression specifically, data scaling is not as important.
+
+Another important factor to keep in mind when using multiple features is the concept of **collinearity**, which occurs when two or more predictor variables are highly correlated with each other. This can lead to redundancy, where the correlated predictors provide overlapping information about the target variable. Collinearity can cause problems in regression models, such as unstable coefficients, difficulty in interpreting results, and increased sensitivity to small changes in the data. So we should examine the relationships between features before choosing which features to include in the final model.
+
+
+
+## Data Loading
+
+For an example regression dataset that has multiple features, let's consider this dataset of california housing prices, from the [`sklearn.datasets` sub-module](https://scikit-learn.org/stable/api/sklearn.datasets.html):
+
+```{python}
+from sklearn.datasets import fetch_california_housing
+
+dataset = fetch_california_housing(as_frame=True)
+print(type(dataset))
+print(dataset.keys())
+```
+
+```{python}
+print(dataset.DESCR)
+```
+
+:::{.callout-note title="Data Source"}
+
+> This dataset was derived from the 1990 U.S. census, using one row per census block group.
+> A block group is the smallest geographical unit for which the U.S. Census Bureau publishes sample data (a block group typically has a population of 600 to 3,000 people).
+> A household is a group of people residing within a home.
+
+- [source](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.fetch_california_housing.html)
+:::
+
+After reading the dataset description, we see features like `latitude`, `longitude`, `population`, and `income` describe the census block. Whereas `age`, `rooms`, `bedrooms`, `occupants`, and `value` describe the homes in that census block.
+
+Our goal is to use the features to predict a target of home value.
+
+
+Accessing the data, and renaming and reordering the columns for convenience:
+
+```{python}
+#| code-overflow: scroll
+
+df = dataset.frame
+# rename columns:
+df.rename(columns={
+    "MedInc": "income", # median income in block group (in)
+    "HouseAge": "age", # median house age in block group
+    "AveRooms": "rooms", # average number of rooms per household
+    "AveBedrms": "bedrooms", # average number of bedrooms per household
+    "Population": "population", # block group population
+    "AveOccup": "occupants",  # average number of household members
+    "Latitude": "latitude", # block group latitude
+    "Longitude": "longitude", # block group longitude
+    "MedHouseVal": "value" # median house value (in $100K)
+}, inplace=True)
+# reorder columns :
+df = df[["latitude", "longitude", "population", "income", "age", "rooms", "bedrooms", "occupants", "value"]]
+df.head()
+```
+
+
+
+
+## Data Exploration
+
+### Distributions
+
+Examining the distribution of the target variable:
+
+```{python}
+import plotly.express as px
+
+px.violin(df, x="value", #points="all",
+          box=True, height=350,
+          title="Distribution of Housing Prices",
+          labels = {"value": "Median Housing Price"}
+)
+```
+```{python}
+
+
+px.histogram(df, x="value", height=350,
+            title="Distribution of Housing Prices",
+            labels = {"value": "Median Housing Price"}
+)
+```
+
+It appears there are some outlier homes at the very expensive end, which we could possibly consider dropping.
+
+```{python}
+df.sort_values(by="value", ascending=False).head(5)
+```
+
+### Relationships
+
+Let's examine the relationships between variables, to start to build an intuition about which features may be related to the target.
+
+
+Examining the relationship between average income and median house price:
+
+```{python}
+px.scatter(df, x="income", y="value", height=450, #width=650,
+    title="Median Housing Price by Average Income",
+    trendline="ols", trendline_color_override="green",
+    color="value", color_continuous_scale=px.colors.sequential.YlGn,
+)
+```
+
+Examining the relationship between geographic area (latitude and longitude) and the median housing price:
+
+```{python}
+fig = px.scatter_mapbox(df, lat="latitude", lon="longitude",
+    title="Median Housing Price by Lat/Long",
+    mapbox_style="open-street-map",
+    zoom=4, height=550, width=650,
+    color="value", color_continuous_scale=px.colors.sequential.YlGn,
+)
+fig.show(config={'scrollZoom': True})
+```
+
+:::{.callout-tip title="Interactive dataviz"}
+Zoom and pan the map to find the areas with the most expensive homes.
+:::
+
+We see the most expensive homes are on the coast. So we can consider using latitude and longitude as features in our model.
+
+
+
+#### Pair Plots
+
+One way to visualize the relationships between each combination of variables is using the [`pairplots` function](https://seaborn.pydata.org/generated/seaborn.pairplot.html) from `seaborn`, however in practice this can take a long time to finish.
+
+```{python}
+from seaborn import pairplot
+
+# using all the data (might take a long time):
+#pairplot(df, hue="value")
+
+# taking sample of rows and less columns helps the plot complete faster:
+df_sample = df.sample(100, random_state=99)
+pairplot(df_sample[["rooms","income", "population", "value"]], height=1.3)
+```
+
+#### Correlation
+
+Let's examine the correlation between the target and each of the features, as well as between each pair of features:
+
+```{python}
+cor_mat = df.corr(method="spearman") # numeric_only=True
+
+title = "Spearman Correlation between Variables in Housing Dataset"
+fig = px.imshow(cor_mat, height=600, text_auto= ".2f",
+                color_continuous_scale="Blues", color_continuous_midpoint=0,
+                labels={"x": "Variable", "y": "Variable"}
+)
+fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})
+fig.show()
+```
+
+It looks like there is the highest correlation between the target (median home value) and the median income. So we will probably want to keep income as a feature in our model.
+
+There is also high correlation between rooms and income, which makes sense if there are larger houses in areas of higher income. Because these features are highly correlated with each other, we can consider only using one of them in our model, to address collinearity concerns.
+
+## X/Y Split
+
+
+```{python}
+x = df.drop(columns=["value"])
+y = df["value"]
+print("X:", x.shape)
+print("Y:", y.shape)
+```
+
+## Data Scaling
+
+```{python}
+x_scaled = (x - x.mean()) / x.std()
+print("--------")
+print("SCALED MEANS:")
+print(x_scaled.mean())
+print("--------")
+print("SCALED STDEV:")
+print(x_scaled.std())
+```
+
+## Train/Test Split
+
+```{python}
+from sklearn.model_selection import train_test_split
+
+x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, random_state=99)
+print("TRAIN:", x_train.shape, y_train.shape)
+print("TEST:", x_test.shape, y_test.shape)
+```
+
+
+## Model Training
+
+Training a linear regression model on the training data:
+
+```{python}
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression()
+model.fit(x_train, y_train)
+```
+
+Examining the coefficients:
+
+```{python}
+from pandas import Series
+
+coefs = Series(model.coef_, index=x.columns)
+coefs.name = "Housing Regression Model Coefficients"
+coefs.sort_values(ascending=False)
+```
+
+We see the coefficients with the highest magnitude are income (positive 0.8), and latitude and longitude (each around negative 0.9). These features are contributing the most in explaining the target.
+
+Training metrics:
+
+```{python}
+#| code-fold: show
+
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+
+def regression_report(y_true, y_pred):
+    """Displays regression metrics given predicted and actual values."""
+    r2 = r2_score(y_true, y_pred)
+    mae = mean_absolute_error(y_true, y_pred)
+    mse = mean_squared_error(y_true, y_pred)
+
+    print("R2:", round(r2, 3))
+    print("MAE:", mae.round(3))
+    print("MSE:", mse.round(3))
+    print("RMSE:", (mse ** 0.5).round(3))
+```
+
+```{python}
+y_pred_train = model.predict(x_train)
+
+print("TRAINING METRICS:")
+regression_report(y_train, y_pred_train)
+```
+
+## Model Evaluation
+
+Test metrics:
+
+
+```{python}
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+
+y_pred = model.predict(x_test)
+
+print("TEST METRICS:")
+regression_report(y_test, y_pred)
+```
+
+We see an r-squared score of around 0.61 for the baseline model using all features.
+
+## Feature Selection
+
+OK, so we've trained a model using all available features, and examined the coefficients to see which features are most predictive. But do we need all the features? Let's consider which features will give us the most "bang for our buck", as we explore trade-offs between model performance and model complexity.
+
+To perform this experiment without proliferating lots of duplicate code, here we are abstracting all the logic into a custom function called `train_eval`, which will accept a list of features as a parameter input. This will allow us to test different combinations of features.
+
+
+```{python}
+#| code-fold: true
+
+from pandas import DataFrame
+from sklearn.linear_model import LinearRegression
+from pandas import Series
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+
+
+def train_eval(df:DataFrame, target="value", features=None, scale=True):
+    """Trains a linear regression model on a dataset
+        for a given target variable and list of features.
+        Uses all features in the dataframe by default.
+    """
+
+    # X/Y SPLIT
+
+    if features:
+        x = df[features]
+    else:
+        x = df.drop(columns=[target])
+
+    y = df[target]
+    print("FEATURES:", x.columns.tolist())
+
+    # SCALING
+
+    if scale:
+        x = (x - x.mean()) / x.std()
+
+    # TRAIN/TEST SPLITT
+
+    x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=99)
+
+    # MODEL TRAINING
+
+    model = LinearRegression()
+    model.fit(x_train, y_train)
+
+    print("--------")
+    print("COEFS:")
+    coefs = Series(model.coef_, index=x.columns)
+    print(coefs.sort_values(ascending=False))
+
+
+    print("--------")
+    y_pred_train = model.predict(x_train)
+    r2_train = r2_score(y_train, y_pred_train)
+    print("R2 (TRAIN):", round(r2_train, 3))
+
+    # EVALUATION
+
+    print("--------")
+    y_pred = model.predict(x_test)
+    r2 = r2_score(y_test, y_pred)
+    print("R2 (TEST):", round(r2, 3))
+
+
+```
+
+
+
+As we saw earlier, our baseline model (using all the features) gets us an r-squared of around 60%.
+
+```{python}
+train_eval(df)
+```
+
+We can start by using a single feature, and build from there.
+
+We saw earlier how income is most highly correlated with the target, and its coefficient was high in magnitude. This would be a great feature to start with.
+
+```{python}
+train_eval(df, features=["income"])
+```
+
+We saw earlier a linear relationship between income and bedrooms, so it's no surprise adding bedrooms to the model does not provide much "lift" (i.e. help improve performance):
+
+
+```{python}
+train_eval(df, features=["income", "bedrooms"])
+```
+
+Three was a linear relationship between bedrooms and rooms, so we see similar results adding rooms as a feature:
+
+```{python}
+train_eval(df, features=["income", "rooms"])
+```
+
+Using rooms and bedrooms improves performance a bit, but due to collinearity we probably wouldn't want to use them both.
+
+```{python}
+train_eval(df, features=["income", "rooms", "bedrooms"])
+```
+
+
+What about geographic region only?
+
+```{python}
+train_eval(df, features=["latitude", "longitude"])
+```
+
+The features with the highest magnitude coefficients are income, latitude, and longitude, so we can see the results from using just these features.
+
+```{python}
+train_eval(df, features=["income", "latitude", "longitude"])
+```
+
+Just these three features give us more or less the same amount of predictive ability as using all the features. So if we take into account model complexity, we might choose these three as the final set of features.
