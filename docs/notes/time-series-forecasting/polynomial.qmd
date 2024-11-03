@@ -1,0 +1,381 @@
+---
+format:
+  html:
+    #code-fold: false
+    number-sections: true
+jupyter: python3
+execute:
+  cache: true # re-render only when source changes
+crossref:
+  custom:
+    - kind: float
+      reference-prefix: Equation
+      key: eqn
+      latex-env: eqn
+---
+
+# Regression with Polynomial Features for Time Series Forecasting
+
+
+```{python}
+#| echo: false
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+from pandas import set_option
+set_option('display.max_rows', 6)
+```
+
+## Data Loading
+
+To illustrate an example of a non-linear trend in time series data, let's consider this dataset of U.S. GDP over time, from the Federal Reserve Economic Data (FRED).
+
+Fetching the data, going back as far as possible:
+
+```{python}
+from pandas_datareader import get_data_fred
+
+df = get_data_fred("GDP", start="1900-01-01")
+df.index.name = "date"
+df.rename(columns={"GDP": "gdp"}, inplace=True)
+df.head()
+```
+
+:::{.callout-note title="Data Source"}
+Here is some more information about the ["GDP" dataset](https://fred.stlouisfed.org/series/GDP):
+
+"Gross domestic product (GDP), the featured measure of U.S. output, is the market value of the goods and services produced by labor and property located in the United States.
+
+The data is expressed in "Billions of Dollars", and is a "Seasonally Adjusted Annual Rate".
+
+The dataset frequency is "Quarterly".
+:::
+
+## Data Exploration
+
+Plotting the data over time with a linear trendline to examine a possible linear relationship:
+
+```{python}
+import plotly.express as px
+
+px.scatter(df, y="gdp", title="US GDP (Quarterly) vs Linear Trend", height=450,
+           labels={"gdp": "GDP (in billions of USD)"},
+            trendline="ols", trendline_color_override="red"
+)
+```
+
+Linear trend might not be the best fit.
+
+Plotting the data over time with a Lowess trendline to examine a possible non-linear relationship:
+
+```{python}
+import plotly.express as px
+
+px.scatter(df, y="gdp", title="US GDP (Quarterly) vs Lowess Trend", height=450,
+           labels={"gdp": "GDP (in billions of USD)"},
+            trendline="lowess", trendline_color_override="red"
+)
+```
+
+In this case, a non-linear trend seems to fit better.
+
+
+
+To compare the results of a linear vs non-linear trend, let’s train two different regression models, and compare the results.
+
+
+
+
+## Linear Regression
+
+
+Sorting time series data:
+
+```{python}
+from pandas import to_datetime
+
+df.sort_values(by="date", ascending=True, inplace=True)
+df["time_step"] = range(1, len(df)+1)
+df.head()
+```
+
+Identifying labels and features (x/y split):
+
+```{python}
+x = df[['time_step']]
+y = df['gdp']
+print(x.shape)
+print(y.shape)
+```
+
+### Train/Test Split
+
+Test/train split for time-series data:
+
+```{python}
+training_size = round(len(df) * .8)
+
+x_train = x.iloc[:training_size] # all before cutoff
+y_train = y.iloc[:training_size] # all before cutoff
+
+x_test = x.iloc[training_size:] # all after cutoff
+y_test = y.iloc[training_size:] # all after cutoff
+
+print("TRAIN:", x_train.shape, y_train.shape)
+print("TEST:", x_test.shape, y_test.shape)
+```
+
+### Model Training
+
+Training a linear regression model:
+
+```{python}
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression()
+model.fit(x_train, y_train)
+```
+
+Examining the coefficients and line of best fit:
+
+```{python}
+print("COEF:", model.coef_.tolist())
+print("INTERCEPT:", model.intercept_)
+print("--------------")
+print(f"EQUATION FOR LINE OF BEST FIT:")
+print("y =", f"{model.coef_[0].round(3)}(x)",
+        "+", model.intercept_.round(3),
+)
+
+
+```
+
+Examining the training results:
+
+```{python}
+from sklearn.metrics import mean_squared_error, r2_score
+
+y_pred_train = model.predict(x_train)
+
+r2_train = r2_score(y_train, y_pred_train)
+print("R^2 (TRAINING):", r2_train)
+
+mse_train = mean_squared_error(y_train, y_pred_train)
+print("MSE (TRAINING):", mse_train)
+```
+
+A strong positive that the linear regression model explains about 85% of the variance in the GDP data during the training period. It suggests that the model fits the training data reasonably well.
+
+These results are promising, however what we really care about is how the model generalizes to the test set.
+
+### Model Evaluation
+
+
+Examining the test results:
+
+
+```{python}
+y_pred = model.predict(x_test)
+
+r2 = r2_score(y_test, y_pred)
+print("R^2 (TEST):", r2.round(3))
+
+mse = mean_squared_error(y_test, y_pred)
+print("MSE (TEST):", mse.round(3))
+```
+
+
+:::{.callout-warning title="Results interpretation"}
+A negative r-squared value suggests the model's predictions are very poor, and even less accurate than using the average of the target variable as the prediction for all instances. Essentially, the linear regression model is providing predictions that are significantly off from the actual values, indicating a bad fit to the data.
+:::
+
+It seems although the model performs well on the training set, it performs very poorly on future data it hasn't seen yet, and doesn't generalize beyond the training period.
+
+
+
+Storing predictions back in the original dataset, to enable comparisons of predicted vs actual values:
+
+```{python}
+df.loc[x_train.index, "y_pred_train"] = y_pred_train
+df.loc[x_test.index, "y_pred_test"] = y_pred
+df
+```
+
+Charting the predictions against the actual values:
+
+```{python}
+#import plotly.express as px
+#
+#fig = px.line(df, y=['gdp', 'y_pred_train', 'y_pred_test'],
+#              title='Linear Regression on GDP Ta andime Series Data',
+#              labels={'value': 'GDP', 'date': 'Date'},
+#)
+## update legend:
+#fig.update_traces(line=dict(color='blue'), name="Actual GDP", selector=dict(name='gdp'))
+#fig.update_traces(line=dict(color='green'), name="Predicted GDP (Train)", selector=dict#(name='y_pred_train'))
+#fig.update_traces(line=dict(color='red'), name="Predicted GDP (Test)", selector=dict#(name='y_pred_test'))
+#
+#fig.show()
+```
+
+```{python}
+#| code-fold: true
+
+import plotly.express as px
+
+def plot_predictions(df, title="Linear Regression on GDP Time Series Data"):
+    fig = px.line(df, y=['gdp', 'y_pred_train', 'y_pred_test'],
+        labels={'value': 'GDP', 'date': 'Date'}, title=title, height=450
+    )
+
+    # update legend:
+    series = [
+        ("gdp", "Actual GDP", "steelblue"),
+        ("y_pred_train", "Predicted GDP (Train)", "green"),
+        ("y_pred_test", "Predicted GDP (Test)", "red"),
+    ]
+    for colname, name, color in series:
+        fig.update_traces(name=name,
+            line=dict(color=color),
+            selector=dict(name=colname)
+    )
+
+    fig.show()
+
+```
+
+```{python}
+plot_predictions(df)
+```
+
+As we see, the linear trend line is not a good fit.
+
+Let's see if a non-linear trend can do better.
+
+## Polynomial Features Regression
+
+One way to help a linear regression model capture a non-linear trend is to train the model on polynomial features, instead of the original features.
+
+By transforming the original features into higher-order terms, **polynomial features** allow the model to capture non-linear relationships, offering greater flexibility and improving the model's ability to generalize to more complex patterns in the data.
+
+In a linear equation, the highest power of the $x$ term is one (a variable raised to the power of one is itself).
+
+::: {.equation #eqn-linear}
+$$
+y = mx + b
+$$
+
+Linear equation.
+:::
+
+In a polynomial equation, there can be higher powers for the leading terms. For example in a quadratic equation the highest power of the $x$ term is two:
+
+
+::: {.equation #eqn-quadratic}
+$$
+y = ax^2 + bx + c
+$$
+
+Quadratic equation.
+:::
+
+
+Creating polynomial features, using the [`PolynomialFeatures` class](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PolynomialFeatures.html) from `sklearn`. In this case, setting `degree=2` creates terms for $x^2$, $𝑥$, and the intercept term:
+
+
+```{python}
+from sklearn.preprocessing import PolynomialFeatures
+from pandas import DataFrame
+
+poly = PolynomialFeatures(degree=2)
+x_poly = poly.fit_transform(x)
+
+x_poly = DataFrame(x_poly, columns=["const", "time_step", "time_step_squared"])
+x_poly.index = x.index
+x_poly
+```
+
+
+
+Splitting the new features using sequential split, in the same way as the original features:
+
+```{python}
+x_train = x_poly.iloc[:training_size] # all before cutoff
+x_test = x_poly.iloc[training_size:] # all after cutoff
+
+print("TRAIN:", x_train.shape, y_train.shape)
+print("TEST:", x_test.shape, y_test.shape)
+```
+
+
+Training a linear regression model on the polynomial features:
+
+```{python}
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression()
+model.fit(x_train, y_train)
+```
+
+Examining the coefficients and line of best fit:
+
+```{python}
+print("COEF:", model.coef_.round(3).tolist())
+print("INTERCEPT:", model.intercept_.round(3))
+print("--------------")
+print(f"EQUATION FOR LINE OF BEST FIT:")
+print("y =", f"{model.coef_[2].round(3)}(x^2)",
+        "+", f"{model.coef_[1].round(3)}(x)",
+        "+", model.intercept_.round(3),
+)
+```
+
+Examining the training results:
+
+```{python}
+from sklearn.metrics import mean_squared_error, r2_score
+
+y_pred_train = model.predict(x_train)
+
+r2_train = r2_score(y_train, y_pred_train)
+print("R^2 (TRAINING):", r2_train.round(3))
+
+mse_train = mean_squared_error(y_train, y_pred_train)
+print("MSE (TRAINING):", mse_train.round(3))
+```
+
+Examining the test results:
+
+```{python}
+from sklearn.metrics import mean_squared_error, r2_score
+
+y_pred = model.predict(x_test)
+
+r2 = r2_score(y_test, y_pred)
+print("R^2:", r2.round(3))
+
+mse = mean_squared_error(y_test, y_pred)
+print("MSE:", mse.round(3))
+```
+
+This model does a lot better generalizing to the test data than the original model.
+
+Storing predictions back in a copy of the original dataset, to enable comparisons of predicted vs actual values:
+
+```{python}
+df_poly = df.copy()
+df_poly.loc[x_train.index, "y_pred_train"] = y_pred_train
+df_poly.loc[x_test.index, "y_pred_test"] = y_pred
+```
+
+```{python}
+title = "Linear Regression (with Polynomial Features) on GDP Time Series Data"
+plot_predictions(df_poly, title=title)
+```
+
+:::{.callout-tip title="Interactive dataviz"}
+Zoom in on an area of the graph to examine predictions during a specific time range.
+:::
+
+Here we see although the trend isn't perfect, the model trained on polynomial features captures the data much better than the basic linear trend produced by training a model on the original features.

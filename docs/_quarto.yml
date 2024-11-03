@@ -100,18 +100,22 @@ book:
         - href: notes/regression/multiple-features.qmd
           text: "Regression with Multiple Features"
 
+        #- href: notes/regression/ridge-lasso.qmd
+        #  text: "Regression with Regularization (Ridge and Lasso)"
 
-    #          - section:
-    #            href: notes/predictive-modeling/time-series-forecasting/index.qmd
-    #            text: "Regression for Time-series Forecasting"
-    #            contents:
-    #              - section:
-    #                href: notes/predictive-modeling/time-series-forecasting/polynomial.qmd
-    #                text: "Polynomial Features"
-    #              - section:
-    #                href: notes/predictive-modeling/time-series-forecasting/seasonality.qmd
-    #                text: "Seasonality Analysis"
-#
+    - part: "Regression for Time-series Forecasting"
+      chapters:
+        - href: notes/time-series-forecasting/index.qmd
+          text: "Time-series Forecasting Overview"
+
+        - href: notes/time-series-forecasting/polynomial.qmd
+          text: "Polynomial Features"
+
+        - href: notes/time-series-forecasting/seasonality.qmd
+          text: "Seasonality Analysis"
+
+
+
     #          - section:
     #            href: notes/predictive-modeling/autoregressive-models/index.qmd
     #            text: "Autoregressive Models for Time-series Forecasting"

@@ -1,0 +1,221 @@
+# Regression for Time Series Forecasting (with `sklearn`)
+
+Let's explore an example of how to use regression to perform trend analysis with time series data.
+
+```{python}
+#| echo: false
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+from pandas import set_option
+set_option('display.max_rows', 6)
+```
+
+## Data Loading
+
+As an example time series dataset, let's consider this dataset of U.S. population over time, from the Federal Reserve Economic Data (FRED).
+
+Fetching the data, going back as far as possible:
+
+```{python}
+from pandas_datareader import get_data_fred
+
+DATASET_NAME = "POPTHM"
+df = get_data_fred(DATASET_NAME, start="1900-01-01")
+print(len(df))
+df
+```
+
+:::{.callout-tip title="Data Source"}
+Here is some more information about the ["POPTHM" dataset](https://fred.stlouisfed.org/series/POPTHM):
+
+"Population includes resident population plus armed forces overseas. The monthly estimate is the average of estimates for the first of the month and the first of the following month."
+
+The data is expressed in "Thousands", and is "Not Seasonally Adjusted".
+:::
+
+
+Wrangling the data, including renaming columns and [converting the date index](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#converting-to-timestamps) to be datetime-aware, may make it easier for us to work with this data:
+
+```{python}
+from pandas import to_datetime
+
+df.rename(columns={DATASET_NAME: "population"}, inplace=True)
+df.index.name = "date"
+df.index = to_datetime(df.index)
+df
+```
+
+## Data Exploration
+
+Exploring trends:
+
+```{python}
+import plotly.express as px
+
+px.scatter(df, y="population", title="US Population (Monthly) vs Trend",
+            labels={"population":"US Population (thousands)", "value":""},
+            trendline="ols", trendline_color_override="red", height=350,
+)
+```
+
+Looks like a possible linear trend. Let's perform a more formal regression analysis.
+
+
+## Data Encoding
+
+Because we need numeric features to perform a regression, we convert the dates to a linear time step of integers (after sorting the data first for good measure):
+
+```{python}
+df.sort_values(by="date", ascending=True, inplace=True)
+
+df["time_step"] = range(1, len(df) + 1)
+df
+```
+
+We will use the numeric time step as our input variable (`x`), to predict the population (`y`).
+
+## Data Splitting
+
+### X/Y Split
+
+Identifying dependent and independent variables:
+
+```{python}
+#x = df[["date"]] # we need numbers not strings
+x = df[["time_step"]]
+
+y = df["population"]
+
+print("X:", x.shape)
+print("Y:", y.shape)
+```
+
+### Train/Test Split
+
+Splitting data sequentially, where earlier data is used in training, and recent data is used for testing:
+
+```{python}
+print(len(df))
+
+training_size = round(len(df) * .8)
+print(training_size)
+
+x_train = x.iloc[:training_size] # slice all before
+y_train = y.iloc[:training_size] # slice all before
+
+x_test = x.iloc[training_size:] # slice all after
+y_test = y.iloc[training_size:] # slice all after
+print("TRAIN:", x_train.shape)
+print("TEST:", x_test.shape)
+```
+
+## Model Selection and Training
+
+Training a linear regression model on the training data:
+
+```{python}
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression()
+
+model.fit(x_train, y_train)
+```
+
+After training, we have access to the learned weights, as well as the line of best fit (i.e. the trend line):
+
+```{python}
+print("COEFS:", model.coef_)
+print("INTERCEPT:", model.intercept_)
+print("------------------")
+print(f"y = {model.coef_[0].round(3)}x + {model.intercept_.round(3)}")
+```
+
+In this case, we interpret the line of best fit to observe how much the population is expected to grow on average per time step, as well as the population trend value at the earliest time step.
+
+:::{.callout-note}
+Remember in this dataset the population is expressed in thousands.
+:::
+
+
+## Model Prediction and Evaluation
+
+We use the trained model to make predictions on the test set, and then calculate regression metrics to see how well the model is doing:
+
+```{python}
+from sklearn.metrics import mean_squared_error, r2_score
+
+y_pred = model.predict(x_test)
+
+mse = mean_squared_error(y_test, y_pred)
+print("MSE:", round(mse, 4))
+
+r2 = r2_score(y_test, y_pred)
+print("R2:", round(r2, 4))
+```
+
+A very high r-squared value represents a strong linear trend.
+
+Plotting predictions (trend line):
+
+```{python}
+df["prediction"] = model.predict(df[["time_step"]])
+df["error"] = df["population"] - df["prediction"]
+
+px.line(df, y=["population", "prediction"], height=350,
+    title="US Population (Monthly) vs Regression Predictions (Trend)",
+    labels={"value":""}
+)
+```
+
+## Forecasting
+
+Assembling a dataset of future dates and time steps (which we can use as inputs to the trained model to make predictions about the future):
+
+
+```{python}
+from pandas import date_range, DateOffset, DataFrame
+
+last_time_step = df['time_step'].iloc[-1]
+last_date = df.index[-1]
+next_date = last_date + DateOffset(months=1)
+
+FUTURE_MONTHS = 36
+# frequency of "M" for end of month, "MS" for beginning of month
+future_dates = date_range(start=next_date, periods=FUTURE_MONTHS, freq='MS')
+future_time_steps = range(last_time_step + 1, last_time_step + FUTURE_MONTHS + 1)
+
+df_future = DataFrame({'time_step': future_time_steps}, index=future_dates)
+df_future.index.name = "date"
+df_future
+```
+
+Predicting future values:
+
+```{python}
+df_future["prediction"] = model.predict(df_future[["time_step"]])
+df_future
+```
+
+Concatenating historical data with future data:
+
+```{python}
+from pandas import concat
+
+chart_df = concat([df, df_future])
+chart_df
+```
+
+:::{.callout-note}
+The population and error values for future dates are null, because we don't know them yet. Although we are able to make predictions about these values, based on historical trends.
+:::
+
+Plotting trend vs actual, with future predictions:
+
+```{python}
+px.line(chart_df[-180:], y=["population", "prediction"], height=350,
+    title="US Population (Monthly) vs Regression Predictions (Trend)",
+    labels={"value":""}
+)
+```
