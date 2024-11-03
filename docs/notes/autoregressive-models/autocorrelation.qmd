@@ -1,0 +1,343 @@
+# Autocorrelation
+
+**Autocorrelation** is a statistical concept that measures the relationship between a variable's current value and its past values over successive time intervals.
+
+In time series analysis, autocorrelation helps identify patterns and dependencies in data, particularly when dealing with sequences of observations over time, such as stock prices, temperature data, or sales figures. Autocorrelation analysis is helpful for detecting trends, periodicities, and other temporal patterns in the data, as well as for developing predictive models.
+
+In predictive modeling, especially for time series forecasting, autocorrelation is essential for selecting the number of lagged observations (or lags) to use in autoregressive models. By calculating the autocorrelation for different lag intervals, it is possible to determine how much influence past values have on future ones. This process helps us choose the optimal lag length, which in turn can improve the accuracy of forecasts.
+
+
+## Interpreting Autocorrelation
+
+Similar to correlation, autocorrelation will range in values from -1 to 1. A positive autocorrelation indicates that a value tends to be similar to preceding values, while a negative autocorrelation suggests that a value is likely to differ from previous observations.
+
+  + **Strong Positive Autocorrelation**: A high positive autocorrelation at a particular lag (close to +1) indicates that past values strongly influence future values at that lag. This could mean that the series has a strong trend or persistent behavior, where high values are followed by high values and low values by low ones.
+
+  + **Strong Negative Autocorrelation**: A strong negative autocorrelation (close to -1) suggests an oscillatory pattern, where high values tend to be followed by low values and vice versa.
+
+  + **Weak Autocorrelation**: If the ACF value is close to zero for a particular lag, it suggests that the time series does not exhibit a strong relationship with its past values at that lag. This can indicate that the observations at that lag are not predictive of future values.
+
+
+In addition to interpreting the autocorrelation values themselves, we can examine the autocorrelation plot to identify patterns:
+
+  + Exponential decay in the ACF indicates a stationary autoregressive process (AR model).
+  + One or two significant spikes followed by rapid decay suggest a moving average process (MA model).
+  + Slow decay or oscillation often suggests non-stationarity, which may require differencing to stabilize the series.
+
+
+```{python}
+#| code-fold: true
+
+import numpy as np
+import matplotlib.pyplot as plt
+from statsmodels.tsa.arima_process import ArmaProcess
+import statsmodels.api as sm
+
+# Setting random seed for reproducibility
+np.random.seed(42)
+
+# Generating AR(1) process (exponential decay in ACF)
+ar1 = np.array([1, -0.8])  # AR coefficient
+ma1 = np.array([1])        # MA coefficient
+ar1_process = ArmaProcess(ar1, ma1).generate_sample(nsample=100)
+ar1_acf = sm.tsa.acf(ar1_process, nlags=20)
+
+# Generating MA(1) process (significant spike followed by rapid decay)
+ar2 = np.array([1])        # AR coefficient
+ma2 = np.array([1, 0.8])   # MA coefficient
+ma1_process = ArmaProcess(ar2, ma2).generate_sample(nsample=100)
+ma1_acf = sm.tsa.acf(ma1_process, nlags=20)
+
+# Generating non-stationary series with slow decay in ACF
+non_stat_process = np.cumsum(np.random.randn(100))  # Random walk process
+non_stat_acf = sm.tsa.acf(non_stat_process, nlags=20)
+```
+
+```{python}
+#| code-fold: true
+
+import plotly.graph_objects as go
+
+# Creating the ACF plots using Plotly
+
+# Plot for AR(1) process
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=list(range(21)), y=ar1_acf, mode='markers+lines', name='AR(1)'))
+fig.update_layout(title='ACF of AR(1) Process (Exponential Decay)',
+                  xaxis_title='Lag',
+                  yaxis_title='ACF')
+
+# Plot for MA(1) process
+fig.add_trace(go.Scatter(x=list(range(21)), y=ma1_acf, mode='markers+lines', name='MA(1)'))
+fig.update_layout(title='ACF of MA(1) Process (Significant Spike then Rapid Decay)',
+                  xaxis_title='Lag',
+                  yaxis_title='ACF')
+
+# Plot for non-stationary process
+fig.add_trace(go.Scatter(x=list(range(21)), y=non_stat_acf, mode='markers+lines', name='Non-Stationary'))
+fig.update_layout(title='ACF Comparison for AR(1), MA(1), and Non-Stationary Processes',
+                  xaxis_title='Lag',
+                  yaxis_title='ACF',
+                  height=400, # You can set this to any number of pixels you prefer
+                  legend_title='Process Type',
+                  template='plotly_white')
+
+fig.show()
+```
+
+
+
+## Calculating Autocorrelation in Python
+
+In Python, we can calculate autocorrelation using the [`acf` function](https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.acf.html) from the `statsmodels` package. The autocorrelation function (ACF) calculates the correlation of a time series with its lagged values, providing a guide to the structure of dependencies within the data.
+
+
+```python
+from statsmodels.tsa.stattools import acf
+
+n_lags = 12 # we choose number of periods to consider
+
+acf_results = acf(time_series, nlags=n_lags, fft=False)
+print(type(acf_results)) #> np.ndarray
+print(len(acf_results)) #> 13
+```
+
+:::{.callout-note }
+When we obtain results from the autocorrelation function, we get one plus the number of lagging periods we chose. The first value represents a datapoint's correlation with itself, and is always equal to 1.
+:::
+
+## Examples of Autocorrelation
+
+Let's conduct autocorrelation analysis on two example datasets, to illustrate the concepts and techniques.
+
+:::{.callout-note title="Data Source"}
+These datasets and examples of autocorrelation are based on material by Prof. Ram Yamarthy.
+:::
+
+### Example 1: Random Data
+
+In this first example, we will use a randomly generated series of data, where there is no relationship between each value and its previous values.
+
+#### Data Simulation
+
+Here we are generating a random distribution of numbers using the [`random.normal` function](https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html) from `numpy`:
+
+```{python}
+import numpy as np
+
+y_rand = np.random.normal(loc=0, scale=1, size=1000) # mean, std, n_samples
+print(type(y_rand))
+print(y_rand.shape)
+print(y_rand[0:25].round(3))
+```
+
+#### Data Exploration
+
+We plot the data to show although it is normally distributed, in terms of the sequence from one datapoint to another, it represents some random noise:
+
+```{python}
+#import plotly.express as px
+#
+#px.histogram(y_rand, height=350, title="Random Numbers (Normal Distribution)")
+```
+
+```{python}
+import plotly.express as px
+
+px.scatter(y_rand, height=350, title="Random Numbers (Normal Distribution)")
+```
+
+#### Calculating Autocorrelation
+
+We use the `acf` function from `statsmodels` to calculate autocorrelation, passing the data series in as the first parameter:
+
+```{python}
+from statsmodels.tsa.stattools import acf
+
+n_lags = 10 # we choose number of periods to consider
+
+acf_rand = acf(y_rand, nlags=n_lags, fft=False)
+print(type(acf_rand))
+print(len(acf_rand))
+print(list(acf_rand.round(3)))
+```
+
+Finally, we plot the autocorrelation results to visually examine the autocorrelation structure of the data:
+
+```{python}
+px.line(y=acf_rand, markers=["o"], height=350,
+        title="Autocorrelation of a series of random numbers",
+        labels={"x": "Number of Lags", "y":"Autocorrelation"}
+)
+```
+
+We see, for this randomly generated dataset, although the the current value is perfectly correlated with itself (as expected), it has no correlation with the previous values.
+
+### Example 2: Baseball Team Performance
+
+Alright, so we have seen an example where there is weak autocorrelation. But let's take a look at another example where there is some moderately strong autocorrelation between current and past values. We will use a dataset of baseball team performance, where there may be some correlation between a team's current performance and its recent past performance.
+
+```{python}
+#| echo: false
+
+#import warnings
+#warnings.simplefilter(action='ignore', category=FutureWarning)
+
+from pandas import set_option
+set_option('display.max_rows', 6)
+```
+
+#### Data Loading
+
+Here we are loading a dataset of baseball team statistics, for four different baseball teams:
+
+```{python}
+from pandas import read_excel
+
+repo_url = f"https://github.com/prof-rossetti/python-for-finance"
+file_url = f"{repo_url}/raw/refs/heads/main/docs/data/baseball_data.xlsx"
+
+teams = [
+    {"abbrev": "NYY", "sheet_name": "ny_yankees"  , "color": "#1f77b4"},
+    {"abbrev": "BOS", "sheet_name": "bo_redsox"   , "color": "#d62728"},
+    {"abbrev": "BAL", "sheet_name": "balt_orioles", "color": "#ff7f0e"},
+    {"abbrev": "TOR", "sheet_name": "tor_blujays" , "color": "#17becf"},
+]
+for team in teams:
+
+    # read dataset from file:
+    team_df = read_excel(file_url, sheet_name=team["sheet_name"])
+    team_df.index = team_df["Year"]
+
+    print("----------------")
+    print(team["abbrev"])
+    print(len(team_df), "years from", team_df.index.min(),
+                                "to", team_df.index.max())
+    print(team_df.columns.tolist())
+
+    # store in teams dictionary for later:
+    team["df"] = team_df
+
+```
+
+For each team, we have with a dataset of their annual statistics. We see there are a different number of rows for each of the teams, depending on what year they were established.
+
+
+Merging the dataset will make it easier for us to chart this data, especially when we only care about analyzing annual performance (win-loss percentage):
+
+```{python}
+from pandas import DataFrame
+
+df = DataFrame()
+for team in teams:
+    # store that team's win-loss pct in a new column:
+    df[team["abbrev"]] = team["df"]["W-L%"]
+
+df
+```
+
+Here we are creating a single dataset representing the annual performance (win-loss percentage) for each team.
+
+#### Data Exploration
+
+We can continue exploring the data by plotting the performance of each team over time:
+
+```{python}
+team_colors_map = {team['abbrev']: team['color'] for team in teams}
+
+px.line(df, y=["NYY", "BOS", "BAL", "TOR"], height=450,
+    title="Baseball Team Annual Win Percentages",
+    labels={"value": "Win Percentage", "variable": "Team"},
+    color_discrete_map=team_colors_map
+)
+```
+
+:::{.callout-tip title="Interactive dataviz"}
+Click a team name in the legend to toggle that series on or off.
+:::
+
+Calculating moving averages helps us arrive at a smoother trend of each team's performance over time:
+
+```{python}
+window = 20
+
+ma_df = DataFrame()
+for team_name in df.columns:
+    # calculate moving average:
+    moving_avg = df[team_name].rolling(window=window).mean()
+    # store results in new column:
+    ma_df[team_name] = moving_avg
+
+```
+
+```{python}
+px.line(ma_df, y=ma_df.columns.tolist(), height=450,
+        title=f"Baseball Team Win Percentages ({window} Year Moving Avg)",
+        labels={"value": "Win Percentage", "variable": "Team"},
+        color_discrete_map=team_colors_map
+)
+```
+
+Aggregating the data gives us a measure of which teams do better on average:
+
+```{python}
+means = df.mean(axis=0).round(3) # get the mean value for each column
+means.name = "Average Performance"
+means.sort_values(ascending=True, inplace=True)
+
+px.bar(y=means.index, x=means.values, orientation="h", height=350,
+        title=f"Average Win Percentage ({df.index.min()} to {df.index.max()})",
+        labels={"x": "Win Percentage", "y": "Team"},
+        color=means.index, color_discrete_map=team_colors_map
+)
+```
+
+Here we see New York has the best performance, while Baltimore has the worst performance, on average.
+
+
+
+#### Calculating Autocorrelation
+
+OK, sure we can analyze which teams do better on average, and how well each team performs over time, but with autocorrelation analysis, we are interested in how consistent current results are with past results.
+
+Calculating autocorrelation of each team's performance, using ten lagging periods for each team:
+
+```{python}
+from statsmodels.tsa.stattools import acf
+
+n_lags = 10
+
+acf_df = DataFrame()
+for team_name in df.columns:
+    # calculate autocorrelation:
+    acf_results = acf(df[team_name], nlags=n_lags, fft=True, missing="drop")
+    # store results in new column:
+    acf_df[team_name] = acf_results
+
+acf_df.T.round(3)
+```
+
+The autocorrelation results help us understand the consistency in performance of each team from year to year.
+
+:::{.callout-tip title="FYI"}
+When computing autocorrelation using the `acf` function, the calculation considers all values in the dataset, not just the last 10 values. The 10 lagging periods mean that the autocorrelation is computed for each observation in the dataset, looking back 10 periods for each observation.
+:::
+
+Plotting the autocorrelation results helps us compare the results for each team:
+
+```{python}
+px.line(acf_df, y=["NYY", "BOS", "BAL", "TOR"], markers="O", height=450,
+        title="Auto-correlation of Annual Baseball Team Performance",
+        labels={"variable": "Team", "value": "Autocorrelation",
+                "index": "Number of lags"
+        },
+        color_discrete_map=team_colors_map
+)
+```
+
+
+We see at lagging period zero, each team's current performance is perfectly correlated with itself. But at lagging period one, the autocorrelation for each team starts to drop off to around 60%. This means for each team, their performance in a given year will be around 60% correlated with the previous year.
+
+The autocorrelation for each team continues to drop off at different rates over additional lagging periods. Examining the final autocorrelation value helps us understand, given a team's current performance, how consistent it was over the previous ten years.
+
+Which team is the most consistent in their performance over a ten year period?

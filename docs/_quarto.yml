@@ -115,21 +115,20 @@ book:
           text: "Seasonality Analysis"
 
 
+    - part: "Autoregressive Models for Time-series Forecasting"
+      chapters:
+        #- href: notes/autoregressive-models/index.qmd
+        #  text: "Autoregressive Models Overview"
 
-    #          - section:
-    #            href: notes/predictive-modeling/autoregressive-models/index.qmd
-    #            text: "Autoregressive Models for Time-series Forecasting"
-    #            contents:
-    #              - section:
-    #                href: notes/predictive-modeling/autoregressive-models/stationarity.qmd
-    #                text: "Stationarity"
-    #              - section:
-    #                href: notes/predictive-modeling/autoregressive-models/autocorrelation.qmd
-    #                text: "Autocorrelation"
-    #              - section:
-    #                href: notes/predictive-modeling/autoregressive-models/arima.qmd
-    #                text: "Autoregressive Models w/ statsmodels"
-#
+        - href: notes/autoregressive-models/stationarity.qmd
+          text: "Stationarity"
+
+        - href: notes/autoregressive-models/autocorrelation.qmd
+          text: "Autocorrelation"
+
+        - href: notes/autoregressive-models/arima.qmd
+          text: "Autoregressive Models w/ statsmodels"
+
     #          - section:
     #            href: notes/predictive-modeling/classification/index.qmd
     #            text: "Classification"

@@ -1,0 +1,274 @@
+# Auto-Regressive Models
+
+```{python}
+#| echo: false
+
+import warnings
+#warnings.simplefilter(action='ignore', category=FutureWarning)
+
+from statsmodels.tools.sm_exceptions import ValueWarning
+warnings.simplefilter(action='ignore', category=ValueWarning)
+
+from pandas import set_option
+set_option('display.max_rows', 6)
+```
+
+**Auto-Regressive Integrated Moving Average (ARIMA)** is a "method for forecasting or predicting future outcomes based on a historical time series. It is based on the statistical concept of serial correlation, where past data points influence future data points." - [Source: Investopedia](https://www.investopedia.com/terms/a/autoregressive-integrated-moving-average-arima.asp)
+
+An ARIMA model has three key components:
+
+  + **Auto-Regressive (AR)** part: involves regressing the current value of the series against its past values (lags). The idea is that past observations have an influence on the current value.
+
+  + **Integrated (I)** part: refers to the differencing of observations to make the time series stationary (i.e. to remove trends or seasonality). A stationary time series has constant mean and variance over time.
+
+  + **Moving Average (MA)** part: involves modeling the relationship between the current value of the series and past forecast errors (residuals). The model adjusts the forecast based on the error terms from previous periods.
+
+
+In practice, ARIMA models may be better at short term forecasting, and may not perform as well in forecasting over the long term.
+
+## Assumption of Stationarity
+
+:::{.callout-warning title="Assumption of stationarity"}
+Remember, ARMA models require data to be [stationary](./stationarity.qmd). The mean and variance and autocorrelation should remain fairly constant over time.
+
+For instance, while stock *prices* are generally non-stationary, ARIMA models can still be used by transforming the data to achieve stationarity. This is done through differencing, which is the "Integrated" (I) component of ARIMA. Stock *returns* (or the percentage change from the previous period) are typically more stationary and suitable for modeling.
+:::
+
+
+## Examples
+
+:::{.callout-note title="Data Source"}
+These examples of autoregressive models are based on material by Prof. Ram Yamarthy.
+:::
+
+
+### Example 1: Baseball Team Performance
+
+#### Data Loading
+
+Let's consider this previous dataset of baseball team performance, which we learned exemplified some positive [autocorrelation](./autocorrelation.qmd#example-2-autocorrelation-of-baseball-team-performance) after two lagging periods:
+
+
+```{python}
+#| code-fold: true
+
+from pandas import read_excel, DataFrame, to_datetime
+
+repo_url = f"https://github.com/prof-rossetti/python-for-finance"
+file_url = f"{repo_url}/raw/refs/heads/main/docs/data/baseball_data.xlsx"
+
+df = read_excel(file_url, sheet_name="ny_yankees")
+
+df.index = to_datetime(df["Year"], format="%Y")
+df.drop(columns=["Year"], inplace=True)
+df
+```
+
+
+#### Data Exploration
+
+Sorting data:
+
+```{python}
+df.sort_values(by="Year", ascending=True, inplace=True)
+
+y = df["W-L%"]
+print(y.shape)
+```
+
+Plotting the time series data:
+
+```{python}
+import plotly.express as px
+
+px.line(x=y.index, y=y, height=450,
+    title="Baseball Team (NYY) Annual Win Percentages",
+    labels={"x": "Team", "y": "Win Percentage"},
+)
+```
+
+```{python}
+#import plotly.express as px
+#
+#px.line(df, y="W-L%", height=450,
+#    title="Baseball Team (NYY) Annual Win Percentages",
+#    labels={"value": "Win Percentage", "variable": "Team"},
+#)
+```
+
+
+
+
+
+##### Stationarity
+
+Check for stationarity:
+
+```{python}
+from statsmodels.tsa.stattools import adfuller
+
+# Perform the Augmented Dickey-Fuller test for stationarity
+result = adfuller(y)
+print(f'ADF Statistic: {result[0]}')
+print(f'P-value: {result[1]}')
+
+# If p-value > 0.05, the series is not stationary, and differencing is required
+```
+
+##### Autocorrelation
+
+
+Examining autocorrelation over ten lagging periods:
+
+```{python}
+from statsmodels.tsa.stattools import acf
+
+n_lags = 10
+acf_results = acf(y, nlags=n_lags, fft=True, missing="drop")
+print(acf_results)
+```
+
+Plotting the autocorrelation results:
+
+```{python}
+import plotly.express as px
+
+fig = px.line(y=acf_results, markers=["o"], height=400,
+        title=f"Auto-correlation of Annual Baseball Performance (NYY)",
+        labels={"x": "Number of Lags", "y":"Auto-correlation"},
+)
+fig.show()
+```
+
+We see moderately high autocorrelation persists until two to four lagging periods.
+
+#### Train/Test Split
+
+```{python}
+#test_size = 0.2
+#cutoff = round(len(y) * (1 - test_size))
+#y_train = y.iloc[:cutoff] # all before cutoff
+#y_test = y.iloc[cutoff:] # all after cutoff
+#
+#print("Y TRAIN:", y_train.shape)
+#print("Y TEST:", y_test.shape)
+```
+
+```{python}
+def sequential_split(y, test_size=0.2):
+    cutoff = round(len(y) * (1 - test_size))
+    y_train = y.iloc[:cutoff] # all before cutoff
+    y_test = y.iloc[cutoff:] # all after cutoff
+    return y_train, y_test
+```
+
+```{python}
+y_train, y_test = sequential_split(y, test_size=0.1)
+print("Y TRAIN:", y_train.shape)
+print("Y TEST:", y_test.shape)
+```
+
+
+#### Model Training
+
+To implement autoregressive moving average model in Python, we can use the [`ARIMA` class](https://www.statsmodels.org/dev/generated/statsmodels.tsa.arima.model.ARIMA.html) from `statsmodels`.
+
+```{python}
+from statsmodels.tsa.arima.model import ARIMA
+
+n_periods = 2 # based on earlier autocorrelation analysis
+model = ARIMA(y_train, order=(n_periods, 0, 0))
+print(type(model))
+
+results = model.fit()
+print(type(results))
+
+print(results.summary())
+```
+
+Reconstruct training set with predictions:
+
+```{python}
+#train_set = df.loc[y_train.index].copy()
+train_set = y_train.copy().to_frame()
+train_set["Predicted"] = results.fittedvalues
+train_set["Error"] = results.resid
+train_set
+```
+
+Training metrics:
+
+```{python}
+from sklearn.metrics import r2_score
+
+r2_score(train_set["W-L%"], train_set["Predicted"])
+```
+
+Plotting predictions during the training period:
+
+```{python}
+px.line(train_set, y=["W-L%", "Predicted"], height=350,
+    title="Baseball Team (NYY) Performance vs ARMA Predictions (Training Set)",
+    labels={"value":""}
+)
+```
+
+
+#### Evaluation
+
+Reconstructing test set with predictions for the test period:
+
+```{python}
+start = y_test.index[0]
+end = y_test.index[-1]
+start, end
+```
+
+```{python}
+y_pred = results.predict(start=start, end=end)
+print(y_pred.shape)
+```
+
+```{python}
+test_set = y_test.copy().to_frame()
+test_set["Predicted"] = y_pred
+test_set["Error"] = test_set["Predicted"] - test_set["W-L%"]
+test_set.head()
+```
+
+Testing metrics:
+
+```{python}
+r2_score(test_set["W-L%"], test_set["Predicted"])
+```
+
+Not so good.
+
+```{python}
+
+#px.line(test_set, y=["W-L%", "Predicted"], height=350,
+#    title="Baseball Team (NYY) Performance vs ARMA Predictions (Test Set)",
+#    labels={"value":""}
+#)
+```
+
+Plotting predictions during the entire period:
+
+```{python}
+from pandas import concat
+
+df_pred = concat([train_set, test_set])
+df_pred
+```
+
+```{python}
+px.line(df_pred, y=["W-L%", "Predicted"], height=350,
+    title="Baseball Team (NYY) Performance vs ARMA Predictions",
+    labels={"value":""}
+)
+```
+
+We see the model quickly stabilizes after two years into the test period, corresponding with the number of lagging periods chosen.
+
+
+Experimenting with different `order` parameter values may yield different results.
