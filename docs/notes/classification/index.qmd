@@ -1,0 +1,190 @@
+# Classification
+
+**Classification** is a supervised learning task where the variable we are trying to predict is discrete, whether that is binary or categorical.
+
+Some examples of discrete data include:
+
+  + Whether an email is spam or not (binary)
+  + Whether an outcome is successful or not (binary)
+  + Which of nine numeric digits is represented by some handwriting (categorical)
+  + Which of three families a given penguin is likely to be a member of (categorical)
+
+In this chapter, we will explore different classification models, and introduce key performance metrics used to evaluate the effectiveness of classification models.
+
+
+
+## Classification Models
+
+Classification Models in Python:
+
+  + [`LogisticRegression`](https://scikit-learn.org/1.5/modules/generated/sklearn.linear_model.LogisticRegression.html) from `sklearn` (this is a classification, not a regression model)
+  + [`DecisionTreeClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html) from `sklearn`
+  + [`RandomForestClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html) from `sklearn`
+  + etc.
+
+
+
+## Classification Metrics
+
+Classification Metrics:
+
+  + Accuracy
+  + Precision
+  + Recall
+  + F-1 Score
+  + ROC AUC
+  + etc.
+
+In addition to these metrics, we can use techniques such as the Confusion Matrix to evaluate classification results.
+
+Additional resources about Classification Metrics from Google ML Crash Course:
+
+  + [Precision and Recall](https://developers.google.com/machine-learning/crash-course/classification/accuracy-precision-recall)
+  + [AUC and ROC](https://developers.google.com/machine-learning/crash-course/classification/roc-and-auc)
+
+### Accuracy
+
+**Accuracy** measures the proportion of correctly classified instances among the total instances.
+
+
+$$
+\text{Accuracy} = \frac{\text{True Positives} + \text{True Negatives}}{\text{Total Instances}}
+$$
+
+  + Pros: Provides a quick and simple measure of model performance.
+  + Cons: Can be misleading when the classes are imbalanced (e.g. rare event classification), as it does not differentiate between the types of errors (false positives vs. false negatives).
+
+
+
+### Precision, Recall, and F1 Score
+
+
+
+
+
+**Precision** measures the accuracy of positive predictions, reflecting the proportion of true positives among all instances predicted as positive.
+
+
+$$
+\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}
+$$
+
+  + Pros: Useful in scenarios where false positives are costly (e.g. spam detection).
+  + Cons: Does not account for false negatives, making it less informative in cases where missing positives is a concern.
+
+
+**Recall**, or True Positive Rate, measures the model's ability to identify all positive instances, reflecting the proportion of true positives among actual positive instances.
+
+
+$$
+\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}
+$$
+
+  + Pros: Important in situations where missing positive cases is costly (e.g. disease diagnosis).
+  + Cons: Ignores false positives, potentially overemphasizing true positives at the cost of precision.
+
+
+The **F-1 Score** is the harmonic mean of precision and recall, balancing the two metrics into a single score.
+
+$$
+\text{F-1 Score} = 2 \cdot \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}
+$$
+
+
+  + Pros: Offers a balance between precision and recall, particularly useful when there is an uneven class distribution.
+  + Cons: Can be less interpretable alone, especially if more weight should be given to precision or recall individually.
+
+
+
+### ROC-AUC
+
+ROC stands for the Receiver Operating Characteristic.
+
+The ROC AUC score is the area under the ROC curve plotted with **True Positive Rate** on the y-axis and **False Positive Rate** on the x-axis, often computed numerically as there's no closed-form formula.
+
+
+
+
+### Confusion Matrix
+
+In addition to using metrics to evaluate classification results, we can use additional techniques such as a confusion matrix to show how many observations were properly classified vs mis-classified.
+
+
+
+
+## Classification Metrics in Python
+
+
+For convenience, we will generally prefer to use classification metric functions from the [`sklearn.metrics` submodule](https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics):
+
+
+```python
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+accy = accuracy_score(y_true, y_pred)
+print("ACCY:", round(accy,3))
+
+prec = precision_score(y_true, y_pred)
+print("PRECISION:", round(prec,3))
+
+rec = recall_score(y_true, y_pred)
+print("RECALL:", round(rec,3))
+
+f1 = f1_score(y_true, y_pred)
+print("F1:", round(f1,3))
+```
+
+We also have access to the `classification_report` function which provides all of these metrics in a single report:
+
+```python
+from sklearn.metrics import classification_report
+
+print(classification_report(y_true, y_pred))
+```
+
+In addition to these metrics, we also have evaluation tools such as the `confusion_matrix` function:
+
+```python
+from sklearn.metrics import confusion_matrix
+
+confusion_matrix(y_true, y_pred)
+```
+
+When using these functions, we pass in the actual values (`y_true`), as well as the predicted values (`y_pred`), We take these values from the training set to arrive at training metrics, or from the test set to arrive at test metrics.
+
+
+Here is a helper function for visualizing the results of a confusion matrix, using a color-coded heatmap:
+
+```{python}
+#| code-fold: show
+
+from sklearn.metrics import confusion_matrix
+import plotly.express as px
+
+def plot_confusion_matrix(y_true, y_pred, height=450, showscale=False, title=None, subtitle=None):
+    # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html
+    # Confusion matrix whose i-th row and j-th column
+    # ... indicates the number of samples with
+    # ... true label being i-th class (ROW)
+    # ... and predicted label being j-th class (COLUMN)
+    cm = confusion_matrix(y_true, y_pred)
+
+    class_names = sorted(y_test.unique().tolist())
+
+    cm = confusion_matrix(y_test, y_pred, labels=class_names)
+
+    title = title or "Confusion Matrix"
+    if subtitle:
+        title += f"<br><sup>{subtitle}</sup>"
+
+    fig = px.imshow(cm, x=class_names, y=class_names, height=height,
+                    labels={"x": "Predicted", "y": "Actual"},
+                    color_continuous_scale="Blues", text_auto=True,
+    )
+    fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})
+    fig.update_coloraxes(showscale=showscale)
+
+    fig.show()
+
+
+```

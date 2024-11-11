@@ -129,17 +129,20 @@ book:
         - href: notes/autoregressive-models/arima.qmd
           text: "Autoregressive Models w/ statsmodels"
 
-    #          - section:
-    #            href: notes/predictive-modeling/classification/index.qmd
-    #            text: "Classification"
-    #            contents:
-    #              - section:
-    #                href: notes/predictive-modeling/classification/binary.qmd
-    #                text: "Binary Classification"
-    #              - section:
-    #                href: notes/predictive-modeling/classification/multiclass.qmd
-    #                text: "Multi-class Classification"
+    - part: "Classification"
+      chapters:
+        - href: notes/classification/index.qmd
+          text: "Classification Overview"
+
+        #- href: notes/classification/logistic.qmd
+        #  text: "Logistic Regression"
+
+        #- href: notes/classification/binary.qmd
+        #  text: "Binary Classification"
 #
+        #- href: notes/classification/multiclass.qmd
+        #  text: "Multi-class Classification"
+
     #      #- "--------------"
     #      - section:
     #        href: notes/predictive-modeling/unsupervised-learning.qmd
