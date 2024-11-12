@@ -106,7 +106,7 @@ Common regression metrics include:
 Each of these metrics provides a measure of how well a regression model explains the observed data.
 They are concerned with various ways of measuring the total error, or difference between actual and predicted values.
 
-![Illustration of error terms, or residuals, in regression.](../../../images/residuals.png)
+![Illustration of error terms, or residuals, in regression.](./../../images/residuals.png)
 
 NOTE: except for the R-squared score, where the goal is to achieve values as close to 1 as possible, the objective with the other metrics is to minimize their values.
 

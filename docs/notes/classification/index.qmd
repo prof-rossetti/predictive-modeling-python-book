@@ -20,8 +20,8 @@ Classification Models in Python:
   + [`LogisticRegression`](https://scikit-learn.org/1.5/modules/generated/sklearn.linear_model.LogisticRegression.html) from `sklearn` (this is a classification, not a regression model)
   + [`DecisionTreeClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html) from `sklearn`
   + [`RandomForestClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html) from `sklearn`
+  + [`XGBClassifier`](https://xgboost.readthedocs.io/en/stable/python/python_api.html#xgboost.XGBClassifier) from `xgboost`
   + etc.
-
 
 
 ## Classification Metrics
