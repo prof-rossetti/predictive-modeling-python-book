@@ -17,12 +17,15 @@ In this chapter, we will explore different classification models, and introduce 
 
 Classification Models in Python:
 
-  + [`LogisticRegression`](https://scikit-learn.org/1.5/modules/generated/sklearn.linear_model.LogisticRegression.html) from `sklearn` (this is a classification, not a regression model)
+  + [`LogisticRegression`](https://scikit-learn.org/1.5/modules/generated/sklearn.linear_model.LogisticRegression.html) from `sklearn` (NOTE: this is a classification model, not a regression model)
   + [`DecisionTreeClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html) from `sklearn`
   + [`RandomForestClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html) from `sklearn`
   + [`XGBClassifier`](https://xgboost.readthedocs.io/en/stable/python/python_api.html#xgboost.XGBClassifier) from `xgboost`
   + etc.
 
+For text classification specifically, we will often use:
+
+  + Naive Bayes Classifier, [`MultinomialNB`](https://scikit-learn.org/1.5/modules/generated/sklearn.naive_bayes.MultinomialNB.html) from `sklearn`
 
 ## Classification Metrics
 
@@ -187,4 +190,17 @@ def plot_confusion_matrix(y_true, y_pred, height=450, showscale=False, title=Non
     fig.show()
 
 
+```
+
+Finally, the ROC-AUC score:
+
+```python
+from sklearn.metrics import roc_auc_score
+
+# get "logits" (predicted probabilities for each class)
+y_pred_proba = model.predict_proba(x_test)
+
+# for multiclass, use "ovr" (one vs rest)
+roc_auc = roc_auc_score(y_test, y_pred_proba, multi_class="ovr")
+print("ROC-AUC:", roc_auc)
 ```
