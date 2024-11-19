@@ -1,0 +1,11 @@
+# Natural Language Processing Overview
+
+
+
+## Text Embeddings
+
+Three different ways of obtaining text embeddings:
+
+  + Count-based methods (TFIDF, Bag of Words)
+  + Contextual methods (Word2Vec, GLOVE, etc.)
+  + Large language models (text-embedding models from OpenAI)

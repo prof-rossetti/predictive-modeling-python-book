@@ -92,10 +92,10 @@ book:
           text: "Regression Overview"
 
         - href: notes/regression/linear.qmd
-          text: "Linear Regression w/ sklearn"
+          text: "Linear Regression w/ `sklearn`"
 
         - href: notes/regression/ols.qmd
-          text: "Linear Regression w/ statsmodels"
+          text: "Linear Regression w/ `statsmodels`"
 
         - href: notes/regression/multiple-features.qmd
           text: "Regression with Multiple Features"
@@ -127,7 +127,7 @@ book:
           text: "Autocorrelation"
 
         - href: notes/autoregressive-models/arima.qmd
-          text: "Autoregressive Models w/ statsmodels"
+          text: "Autoregressive Models w/ `statsmodels`"
 
     - part: "Classification"
       chapters:
@@ -139,9 +139,22 @@ book:
 
         #- href: notes/classification/binary.qmd
         #  text: "Binary Classification"
-#
+
         #- href: notes/classification/multiclass.qmd
         #  text: "Multi-class Classification"
+
+        #- href: notes/classification/Spam_Detection_(Binary_Classification)_SOLUTIONS.ipynb
+        #  text: "Binary Classification w/ `sklearn`"
+#
+        #- href: notes/classification/Penguins_Classifier_(Multiclass)_SOLUTIONS.ipynb
+        #  text: "Multiclass Classification w/ `sklearn`"
+
+
+    #- part: "Natural Language Processing"
+    #  chapters:
+    #    - href: notes/natural-language-processing/index.qmd
+    #      text: "NLP Overview"
+
 
     #      #- "--------------"
     #      - section:
