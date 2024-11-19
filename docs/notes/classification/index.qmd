@@ -200,7 +200,26 @@ from sklearn.metrics import roc_auc_score
 # get "logits" (predicted probabilities for each class)
 y_pred_proba = model.predict_proba(x_test)
 
-# for multiclass, use "ovr" (one vs rest)
+# for multi-class, pass all probas and use "ovr" (one vs rest)
 roc_auc = roc_auc_score(y_test, y_pred_proba, multi_class="ovr")
 print("ROC-AUC:", roc_auc)
+```
+
+Helper function for ROC-AUC for binary or multi-class classification:
+
+```python
+from sklearn.metrics import roc_auc_score
+
+def compute_roc_auc_score(y_test, y_pred_proba, is_multiclass=True):
+    """NOTE: roc_auc_score uses average='macro' by default"""
+
+    if is_multiclass:
+        # all classes (for multi-class), with "one-versus-rest" strategy
+        return roc_auc_score(y_true=y_test, y_score=y_pred_proba, multi_class="ovr")
+    else:
+        # positive class (for binary classification)
+        y_pred_proba_pos = y_pred_proba[:,1]
+        return roc_auc_score(y_true=y_test, y_score=y_pred_proba_pos)
+
+
 ```

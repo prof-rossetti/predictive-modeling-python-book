@@ -23,7 +23,9 @@ statsmodels # used by plotly for trendline parameter
 #scipy
 scikit-learn==1.3.2 # match colab environment
 joblib
+
 ucimlrepo
+palmerpenguins
 
 pandas_datareader
 yahooquery
