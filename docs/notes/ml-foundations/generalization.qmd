@@ -185,8 +185,8 @@ print("TEST:", x_test.shape, y_test.shape)
 For your reference, here is a reusable helper function containing the same sequential split logic:
 
 ```python
-def sequential_split(x, y, training_size=0.8, test_size=None):
-    training_size = 1 - test_size if test_size
+def sequential_split(x, y, test_size=0.20):
+    training_size = 1 - test_size
     assert len(x) == len(y)
     cutoff = round(len(x) * training_size)
 
