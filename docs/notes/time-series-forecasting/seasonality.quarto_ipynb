@@ -1,0 +1,661 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Regression for Seasonality Analysis\n",
+        "\n",
+        "We've explored using a regression for time series forecasting, but what if there are seasonal or cyclical patterns in the data?\n",
+        "\n",
+        "Let's explore an example of how to use regression to identify cyclical patterns and perform seasonality analysis with time series data.\n"
+      ],
+      "id": "df364c83"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "\n",
+        "#import warnings\n",
+        "#warnings.simplefilter(action='ignore', category=FutureWarning)\n",
+        "\n",
+        "from pandas import set_option\n",
+        "set_option('display.max_rows', 6)"
+      ],
+      "id": "5b77dc04",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Loading\n",
+        "\n",
+        "\n",
+        "For a time series dataset that exemplifies cyclical patterns, let's consider this dataset of U.S. employment over time, from the Federal Reserve Economic Data (FRED).\n",
+        "\n",
+        "Fetching the data, going back as far as possible:\n"
+      ],
+      "id": "c26e72c1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas_datareader import get_data_fred\n",
+        "from datetime import datetime\n",
+        "\n",
+        "DATASET_NAME = \"PAYNSA\"\n",
+        "df = get_data_fred(DATASET_NAME, start=datetime(1900,1,1))\n",
+        "print(len(df))\n",
+        "df"
+      ],
+      "id": "a086a63d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-tip title=\"Data Source\"}\n",
+        "Here is some more information about the [\"PAYNSA\" dataset](https://fred.stlouisfed.org/series/PAYNSA):\n",
+        "\n",
+        "\"All Employees: Total Nonfarm, commonly known as Total Nonfarm Payroll, is a measure of the number of U.S. workers in the economy that excludes proprietors, private household employees, unpaid volunteers, farm employees, and the unincorporated self-employed.\"\n",
+        "\n",
+        "\"Generally, the U.S. labor force and levels of employment and unemployment are subject to fluctuations due to seasonal changes in weather, major holidays, and the opening and closing of schools.\"\n",
+        "\n",
+        "\"The Bureau of Labor Statistics (BLS) adjusts the data to offset the seasonal effects to show non-seasonal changes: for example, women's participation in the labor force; or a general decline in the number of employees, a possible indication of a downturn in the economy.\n",
+        "\n",
+        "To closely examine seasonal and non-seasonal changes, the BLS releases two monthly statistical measures: the seasonally adjusted All Employees: Total Nonfarm (PAYEMS) and All Employees: Total Nonfarm (PAYNSA), which is not seasonally adjusted.\"\n",
+        "\n",
+        "This \"PYYNSA\" data is expressed in \"Thousands of Persons\", and is \"Not Seasonally Adjusted\".\n",
+        "\n",
+        "The dataset frequency is \"Monthly\".\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "Wrangling the data, including renaming columns and converting the date index to be datetime-aware, may make it easier for us to work with this data:\n"
+      ],
+      "id": "da80249b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import to_datetime\n",
+        "\n",
+        "df.rename(columns={DATASET_NAME: \"employment\"}, inplace=True)\n",
+        "df.index.name = \"date\"\n",
+        "df.index = to_datetime(df.index)\n",
+        "df"
+      ],
+      "id": "710fca55",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Exploration\n",
+        "\n",
+        "\n",
+        "Visualizing the data:\n"
+      ],
+      "id": "25540f88"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.line(df, y=\"employment\", height=450,\n",
+        "        title=\"US Employment by month (non-seasonally adjusted)\",\n",
+        "        labels={\"employment\": \"Employment (in thousands of persons)\"},\n",
+        ")"
+      ],
+      "id": "290a5a0c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "**Cyclical Patterns**\n",
+        "\n",
+        "Exploring cyclical patterns in the data:\n"
+      ],
+      "id": "93929943"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(df[(df.index.year >= 1970) & (df.index.year <= 1980)], y=\"employment\",\n",
+        "        title=\"US Employment by month (selected years)\", height=450,\n",
+        "        labels={\"Employment\": \"Employment (in thousands)\"},\n",
+        ")"
+      ],
+      "id": "c10d612a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-tip title=\"Interactive dataviz\"}\n",
+        "Hover over the dataviz to see which month(s) typically have higher employment, and which month(s) typically have lower employment.\n",
+        ":::\n",
+        "\n",
+        "**Trend Analysis**\n",
+        "\n",
+        "Exploring trends:\n"
+      ],
+      "id": "22fa9cd8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.scatter(df, y=\"employment\",  height=450,\n",
+        "        title=\"US Employment by month (vs Trend)\",\n",
+        "        labels={\"employment\": \"Employment (in thousands)\"},\n",
+        "        trendline=\"ols\", trendline_color_override=\"red\"\n",
+        ")"
+      ],
+      "id": "7f5e1d05",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Looks like evidence of a possible linear relationship. Let's perform a more formal regression analysis.\n",
+        "\n",
+        "\n",
+        "## Data Encoding\n",
+        "\n",
+        "Because we need numeric features to perform a regression, we convert the dates to a linear time step of integers (after sorting the data first for good measure):\n"
+      ],
+      "id": "700884b6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.sort_values(by=\"date\", ascending=True, inplace=True)\n",
+        "\n",
+        "df[\"time_step\"] = range(1, len(df) + 1)\n",
+        "df"
+      ],
+      "id": "a607384e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We will use the numeric time step as our input variable (`x`), to predict the employment (`y`).\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Data Splitting\n",
+        "\n",
+        "**X/Y Split**\n",
+        "\n",
+        "Identifying dependent and independent variables:\n"
+      ],
+      "id": "c2557450"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x = df[[\"time_step\"]]\n",
+        "\n",
+        "y = df[\"employment\"]\n",
+        "\n",
+        "print(\"X:\", x.shape)\n",
+        "print(\"Y:\", y.shape)"
+      ],
+      "id": "a2919e0a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "**Adding Constants**\n",
+        "\n",
+        "We are going to use `statsmodels`, so we add a column of constant ones representing the intercept:\n"
+      ],
+      "id": "9128f558"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import statsmodels.api as sm\n",
+        "\n",
+        "# adding in a column of constants, as per the OLS docs\n",
+        "x = sm.add_constant(x)\n",
+        "x.head()"
+      ],
+      "id": "99cc5638",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "**Train/Test Split**\n",
+        "\n",
+        "Splitting into training vs testing datasets:\n"
+      ],
+      "id": "a4475452"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#from sklearn.model_selection import train_test_split\n",
+        "#\n",
+        "#x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=99)\n",
+        "#print(\"TRAIN:\", x_train.shape, y_train.shape)\n",
+        "#print(\"TEST:\", x_test.shape, y_test.shape)"
+      ],
+      "id": "eb499fe7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Splitting data sequentially where earlier data is used in training and recent data is use for testing:\n"
+      ],
+      "id": "d2a2d547"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#print(len(df))\n",
+        "#\n",
+        "#training_size = round(len(df) * .8)\n",
+        "#print(training_size)\n",
+        "#\n",
+        "#x_train = x.iloc[:training_size] # slice all before\n",
+        "#y_train = y.iloc[:training_size] # slice all before\n",
+        "#\n",
+        "#x_test = x.iloc[training_size:] # slice all after\n",
+        "#y_test = y.iloc[training_size:] # slice all after\n",
+        "#print(\"TRAIN:\", x_train.shape)\n",
+        "#print(\"TEST:\", x_test.shape)"
+      ],
+      "id": "f05baed7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "For this example, we will not split the data. To help illustrate a story about predictions over the entire time period.\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Model Selection and Training\n",
+        "\n",
+        "Training a linear regression model on the training data:\n"
+      ],
+      "id": "3fcc582a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import statsmodels.api as sm\n",
+        "\n",
+        "model = sm.OLS(y, x, missing=\"drop\")\n",
+        "print(type(model))\n",
+        "\n",
+        "results = model.fit()\n",
+        "print(type(results))"
+      ],
+      "id": "f0035386",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining training results:\n"
+      ],
+      "id": "6a70bf18"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(results.summary())"
+      ],
+      "id": "44f511de",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(results.params)\n",
+        "print(\"------------\")\n",
+        "print(f\"y = {results.params['time_step'].round(3)}x + {results.params['const'].round(3)}\")"
+      ],
+      "id": "05bd9dd6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df[\"prediction\"] = results.fittedvalues\n",
+        "df[\"residual\"] = results.resid"
+      ],
+      "id": "15a7502b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#from pandas import DataFrame\n",
+        "#\n",
+        "## get all rows from the original dataset that wound up in the training set:\n",
+        "#training_set = df.loc[x_train.index].copy()\n",
+        "#print(len(training_set))\n",
+        "#\n",
+        "## create a dataset for the predictions and the residuals:\n",
+        "#training_preds = DataFrame({\n",
+        "#    \"prediction\": results.fittedvalues,\n",
+        "#    \"residual\": results.resid\n",
+        "#})\n",
+        "## merge the training set with the results:\n",
+        "#training_set = training_set.merge(training_preds,\n",
+        "#    how=\"inner\", left_index=True, right_index=True\n",
+        "#)\n",
+        "#\n",
+        "## calculate error for each datapoint:\n",
+        "#training_set"
+      ],
+      "id": "54d6bb5a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "**Regression Trends**\n",
+        "\n",
+        "Plotting trend line:\n"
+      ],
+      "id": "7cff87c3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(df, y=[\"employment\", \"prediction\"], height=350,\n",
+        "    title=\"US Employment (monthly) vs linear trend\",\n",
+        "    labels={\"value\":\"\"}\n",
+        ")"
+      ],
+      "id": "27ecf5e5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "**Regression Residuals**\n",
+        "\n",
+        "Removing the trend, plotting just the residuals:\n"
+      ],
+      "id": "9f8415c8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(df, y=\"residual\",\n",
+        "    title=\"US Employment (monthly) vs linear trend residuals\", height=350\n",
+        ")"
+      ],
+      "id": "ca5a417d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "There seem to be some periodic movements in the residuals.\n",
+        "\n",
+        "#### Seasonality via Means of Periodic Residuals\n",
+        "\n",
+        "Observe there may be some cyclical patterns in the residuals, by calculating periodic means:\n"
+      ],
+      "id": "23b4ee6a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "\n",
+        "from pandas import set_option\n",
+        "set_option('display.max_rows', 15)"
+      ],
+      "id": "17f025df",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df[\"year\"] = df.index.year\n",
+        "df[\"quarter\"] = df.index.quarter\n",
+        "df[\"month\"] = df.index.month"
+      ],
+      "id": "398bb6fc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Here we are grouping the data by quarter and calculating the average residual. This shows us for each quarter, on average, whether predictions are above or below trend:\n"
+      ],
+      "id": "ae5f2eb4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.groupby(\"quarter\")[\"residual\"].mean()"
+      ],
+      "id": "7be2a3ed",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.groupby(\"month\")[\"residual\"].mean()"
+      ],
+      "id": "537c3b89",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "\n",
+        "from pandas import set_option\n",
+        "set_option('display.max_rows', 6)"
+      ],
+      "id": "8f5eaf48",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Seasonality via Regression on Periodic Residuals\n",
+        "\n",
+        "Let's perform a regression using months as the features and the trend residuals as the target. This can help us understand the degree to which employment will be over or under trend for a given month.\n"
+      ],
+      "id": "2b2096a3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# https://pandas.pydata.org/docs/reference/api/pandas.get_dummies.html\n",
+        "# \"one hot encode\" the monthly values:\n",
+        "from pandas import get_dummies as one_hot_encode\n",
+        "\n",
+        "x_monthly = one_hot_encode(df[\"month\"])\n",
+        "x_monthly.columns=[\"Jan\", \"Feb\", \"Mar\", \"Apr\",\n",
+        "                \"May\", \"Jun\", \"Jul\", \"Aug\",\n",
+        "                \"Sep\", \"Oct\", \"Nov\", \"Dec\"]\n",
+        "x_monthly = x_monthly.astype(int)\n",
+        "x_monthly"
+      ],
+      "id": "7be2799b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y_monthly = df[\"residual\"]\n",
+        "\n",
+        "ols_monthly = sm.OLS(y_monthly, x_monthly)\n",
+        "print(type(ols_monthly))\n",
+        "\n",
+        "results_monthly = ols_monthly.fit()\n",
+        "print(type(results_monthly))\n",
+        "\n",
+        "print(results_monthly.summary())"
+      ],
+      "id": "d154637b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The coefficients tell us how each month contributes towards the regression residuals, in other words, for each month, to what degree does the model predict we will be above or below trend?\n",
+        "\n",
+        "**Monthly Predictions of Residuals**\n"
+      ],
+      "id": "172a1d88"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df[\"prediction_monthly\"] = results_monthly.fittedvalues\n",
+        "df[\"residual_monthly\"] = results_monthly.resid"
+      ],
+      "id": "a5b5bd97",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Decomposition of the original data into trend, seasonal component, and residuals:\n"
+      ],
+      "id": "791a08d2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(df, y=[\"employment\", \"prediction\"], title=\"Employment vs trend\", height=350)"
+      ],
+      "id": "75f800d1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(df, y=\"prediction_monthly\", title=\"Employment seasonal component\", height=350)"
+      ],
+      "id": "feae90bb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(df, y=\"residual_monthly\", title=\"Employment de-trended residual\", height=350)"
+      ],
+      "id": "fad11ae0",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

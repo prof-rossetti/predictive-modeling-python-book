@@ -1,0 +1,699 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "#format:\n",
+        "#  html:\n",
+        "#    code-fold: false\n",
+        "jupyter: python3\n",
+        "execute:\n",
+        "  cache: true # re-render only when source changes\n",
+        "---\n",
+        "\n",
+        "\n",
+        "\n",
+        "# Regression with Multiple Features\n",
+        "\n",
+        "So far we have covered an example of regression using a single feature variable to predict the target variable.\n",
+        "\n",
+        "However in practice, it is common to use multiple features, each of which may contribute to improving the model's performance.\n",
+        "\n",
+        "## Considerations\n",
+        "\n",
+        "When working with multiple features, there is a trade-off between **model performance** and **model complexity**. A model with billions of features, and consequently billions of parameters, can be slower to train and may lead to increased storage and computational costs when deployed. In many cases, a simpler model with fewer features that performs nearly as well can be preferable, especially if it offers faster training, lower deployment costs, and improved interpretability. This trade-off between model complexity and performance should be evaluated based on the specific requirements of the use case, such as the need for speed, scalability, or accuracy.\n",
+        "\n",
+        "As previously discussed, one consideration when using multiple features is the potential need to perform [data scaling](../ml-foundations/data-scaling.qmd), to standardize the scale of all the features, and ensure features with large values aren't dominating the model. Although, for linear regression specifically, data scaling is not as important.\n",
+        "\n",
+        "Another important factor to keep in mind when using multiple features is the concept of **collinearity**, which occurs when two or more predictor variables are highly correlated with each other. This can lead to redundancy, where the correlated predictors provide overlapping information about the target variable. Collinearity can cause problems in regression models, such as unstable coefficients, difficulty in interpreting results, and increased sensitivity to small changes in the data. So we should examine the relationships between features before choosing which features to include in the final model.\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Data Loading\n",
+        "\n",
+        "For an example regression dataset that has multiple features, let's consider this dataset of california housing prices, from the [`sklearn.datasets` sub-module](https://scikit-learn.org/stable/api/sklearn.datasets.html):\n"
+      ],
+      "id": "80774eda"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.datasets import fetch_california_housing\n",
+        "\n",
+        "dataset = fetch_california_housing(as_frame=True)\n",
+        "print(type(dataset))\n",
+        "print(dataset.keys())"
+      ],
+      "id": "853e8044",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(dataset.DESCR)"
+      ],
+      "id": "7da81f6f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-note title=\"Data Source\"}\n",
+        "\n",
+        "> This dataset was derived from the 1990 U.S. census, using one row per census block group.\n",
+        "> A block group is the smallest geographical unit for which the U.S. Census Bureau publishes sample data (a block group typically has a population of 600 to 3,000 people).\n",
+        "> A household is a group of people residing within a home.\n",
+        "\n",
+        "- [source](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.fetch_california_housing.html)\n",
+        ":::\n",
+        "\n",
+        "After reading the dataset description, we see features like `latitude`, `longitude`, `population`, and `income` describe the census block. Whereas `age`, `rooms`, `bedrooms`, `occupants`, and `value` describe the homes in that census block.\n",
+        "\n",
+        "Our goal is to use the features to predict a target of home value.\n",
+        "\n",
+        "\n",
+        "Accessing the data, and renaming and reordering the columns for convenience:\n"
+      ],
+      "id": "593a6aac"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-overflow: scroll\n",
+        "\n",
+        "df = dataset.frame\n",
+        "# rename columns:\n",
+        "df.rename(columns={\n",
+        "    \"MedInc\": \"income\", # median income in block group (in)\n",
+        "    \"HouseAge\": \"age\", # median house age in block group\n",
+        "    \"AveRooms\": \"rooms\", # average number of rooms per household\n",
+        "    \"AveBedrms\": \"bedrooms\", # average number of bedrooms per household\n",
+        "    \"Population\": \"population\", # block group population\n",
+        "    \"AveOccup\": \"occupants\",  # average number of household members\n",
+        "    \"Latitude\": \"latitude\", # block group latitude\n",
+        "    \"Longitude\": \"longitude\", # block group longitude\n",
+        "    \"MedHouseVal\": \"value\" # median house value (in $100K)\n",
+        "}, inplace=True)\n",
+        "# reorder columns :\n",
+        "df = df[[\"latitude\", \"longitude\", \"population\", \"income\", \"age\", \"rooms\", \"bedrooms\", \"occupants\", \"value\"]]\n",
+        "df.head()"
+      ],
+      "id": "5985ac30",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Exploration\n",
+        "\n",
+        "### Distributions\n",
+        "\n",
+        "Examining the distribution of the target variable:\n"
+      ],
+      "id": "abb68f48"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.violin(df, x=\"value\", #points=\"all\",\n",
+        "          box=True, height=350,\n",
+        "          title=\"Distribution of Housing Prices\",\n",
+        "          labels = {\"value\": \"Median Housing Price\"}\n",
+        ")"
+      ],
+      "id": "7c6ab570",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.histogram(df, x=\"value\", height=350,\n",
+        "            title=\"Distribution of Housing Prices\",\n",
+        "            labels = {\"value\": \"Median Housing Price\"}\n",
+        ")"
+      ],
+      "id": "c77a230f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "It appears there are some outlier homes at the very expensive end, which we could possibly consider dropping.\n"
+      ],
+      "id": "f419afb0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.sort_values(by=\"value\", ascending=False).head(5)"
+      ],
+      "id": "cafa4d88",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Relationships\n",
+        "\n",
+        "Let's examine the relationships between variables, to start to build an intuition about which features may be related to the target.\n",
+        "\n",
+        "\n",
+        "Examining the relationship between average income and median house price:\n"
+      ],
+      "id": "548d5d0c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.scatter(df, x=\"income\", y=\"value\", height=450, #width=650,\n",
+        "    title=\"Median Housing Price by Average Income\",\n",
+        "    trendline=\"ols\", trendline_color_override=\"green\",\n",
+        "    color=\"value\", color_continuous_scale=px.colors.sequential.YlGn,\n",
+        ")"
+      ],
+      "id": "e09c41ca",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining the relationship between geographic area (latitude and longitude) and the median housing price:\n"
+      ],
+      "id": "e0a6b263"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fig = px.scatter_mapbox(df, lat=\"latitude\", lon=\"longitude\",\n",
+        "    title=\"Median Housing Price by Lat/Long\",\n",
+        "    mapbox_style=\"open-street-map\",\n",
+        "    zoom=4, height=550, width=650,\n",
+        "    color=\"value\", color_continuous_scale=px.colors.sequential.YlGn,\n",
+        ")\n",
+        "fig.show(config={'scrollZoom': True})"
+      ],
+      "id": "f594e91c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-tip title=\"Interactive dataviz\"}\n",
+        "Zoom and pan the map to find the areas with the most expensive homes.\n",
+        ":::\n",
+        "\n",
+        "We see the most expensive homes are on the coast. So we can consider using latitude and longitude as features in our model.\n",
+        "\n",
+        "\n",
+        "\n",
+        "#### Pair Plots\n",
+        "\n",
+        "One way to visualize the relationships between each combination of variables is using the [`pairplots` function](https://seaborn.pydata.org/generated/seaborn.pairplot.html) from `seaborn`, however in practice this can take a long time to finish.\n"
+      ],
+      "id": "48f97f2f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from seaborn import pairplot\n",
+        "\n",
+        "# using all the data (might take a long time):\n",
+        "#pairplot(df, hue=\"value\")\n",
+        "\n",
+        "# taking sample of rows and less columns helps the plot complete faster:\n",
+        "df_sample = df.sample(100, random_state=99)\n",
+        "pairplot(df_sample[[\"rooms\",\"income\", \"population\", \"value\"]], height=1.3)"
+      ],
+      "id": "64007af8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Correlation\n",
+        "\n",
+        "Let's examine the correlation between the target and each of the features, as well as between each pair of features:\n"
+      ],
+      "id": "6451e0fd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "cor_mat = df.corr(method=\"spearman\") # numeric_only=True\n",
+        "\n",
+        "title = \"Spearman Correlation between Variables in Housing Dataset\"\n",
+        "fig = px.imshow(cor_mat, height=600, text_auto= \".2f\",\n",
+        "                color_continuous_scale=\"Blues\", color_continuous_midpoint=0,\n",
+        "                labels={\"x\": \"Variable\", \"y\": \"Variable\"}\n",
+        ")\n",
+        "fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})\n",
+        "fig.show()"
+      ],
+      "id": "6b3e3e20",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "It looks like there is the highest correlation between the target (median home value) and the median income. So we will probably want to keep income as a feature in our model.\n",
+        "\n",
+        "There is also high correlation between rooms and income, which makes sense if there are larger houses in areas of higher income. Because these features are highly correlated with each other, we can consider only using one of them in our model, to address collinearity concerns.\n",
+        "\n",
+        "## X/Y Split\n"
+      ],
+      "id": "3e437d9f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x = df.drop(columns=[\"value\"])\n",
+        "y = df[\"value\"]\n",
+        "print(\"X:\", x.shape)\n",
+        "print(\"Y:\", y.shape)"
+      ],
+      "id": "01c45846",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Scaling\n"
+      ],
+      "id": "ad336feb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x_scaled = (x - x.mean()) / x.std()\n",
+        "print(\"--------\")\n",
+        "print(\"SCALED MEANS:\")\n",
+        "print(x_scaled.mean())\n",
+        "print(\"--------\")\n",
+        "print(\"SCALED STDEV:\")\n",
+        "print(x_scaled.std())"
+      ],
+      "id": "43b1b6bb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Train/Test Split\n"
+      ],
+      "id": "10a71278"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.model_selection import train_test_split\n",
+        "\n",
+        "x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, random_state=99)\n",
+        "print(\"TRAIN:\", x_train.shape, y_train.shape)\n",
+        "print(\"TEST:\", x_test.shape, y_test.shape)"
+      ],
+      "id": "7aa831a1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Model Training\n",
+        "\n",
+        "Training a linear regression model on the training data:\n"
+      ],
+      "id": "136a40b7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.linear_model import LinearRegression\n",
+        "\n",
+        "model = LinearRegression()\n",
+        "model.fit(x_train, y_train)"
+      ],
+      "id": "f097d2fe",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining the coefficients:\n"
+      ],
+      "id": "8b83dbde"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import Series\n",
+        "\n",
+        "coefs = Series(model.coef_, index=x.columns)\n",
+        "coefs.name = \"Housing Regression Model Coefficients\"\n",
+        "coefs.sort_values(ascending=False)"
+      ],
+      "id": "3873699a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We see the coefficients with the highest magnitude are income (positive 0.8), and latitude and longitude (each around negative 0.9). These features are contributing the most in explaining the target.\n",
+        "\n",
+        "Training metrics:\n"
+      ],
+      "id": "d1051425"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-fold: show\n",
+        "\n",
+        "from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error\n",
+        "\n",
+        "def regression_report(y_true, y_pred):\n",
+        "    \"\"\"Displays regression metrics given predicted and actual values.\"\"\"\n",
+        "    r2 = r2_score(y_true, y_pred)\n",
+        "    mae = mean_absolute_error(y_true, y_pred)\n",
+        "    mse = mean_squared_error(y_true, y_pred)\n",
+        "\n",
+        "    print(\"R2:\", round(r2, 3))\n",
+        "    print(\"MAE:\", mae.round(3))\n",
+        "    print(\"MSE:\", mse.round(3))\n",
+        "    print(\"RMSE:\", (mse ** 0.5).round(3))"
+      ],
+      "id": "a07018f9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y_pred_train = model.predict(x_train)\n",
+        "\n",
+        "print(\"TRAINING METRICS:\")\n",
+        "regression_report(y_train, y_pred_train)"
+      ],
+      "id": "28b53f7a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Model Evaluation\n",
+        "\n",
+        "Test metrics:\n"
+      ],
+      "id": "87f5ac35"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error\n",
+        "\n",
+        "y_pred = model.predict(x_test)\n",
+        "\n",
+        "print(\"TEST METRICS:\")\n",
+        "regression_report(y_test, y_pred)"
+      ],
+      "id": "81608389",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We see an r-squared score of around 0.61 for the baseline model using all features.\n",
+        "\n",
+        "## Feature Selection\n",
+        "\n",
+        "OK, so we've trained a model using all available features, and examined the coefficients to see which features are most predictive. But do we need all the features? Let's consider which features will give us the most \"bang for our buck\", as we explore trade-offs between model performance and model complexity.\n",
+        "\n",
+        "To perform this experiment without proliferating lots of duplicate code, here we are abstracting all the logic into a custom function called `train_eval`, which will accept a list of features as a parameter input. This will allow us to test different combinations of features.\n"
+      ],
+      "id": "e8447249"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-fold: true\n",
+        "\n",
+        "from pandas import DataFrame\n",
+        "from sklearn.linear_model import LinearRegression\n",
+        "from pandas import Series\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error\n",
+        "\n",
+        "\n",
+        "def train_eval(df:DataFrame, target=\"value\", features=None, scale=True):\n",
+        "    \"\"\"Trains a linear regression model on a dataset\n",
+        "        for a given target variable and list of features.\n",
+        "        Uses all features in the dataframe by default.\n",
+        "    \"\"\"\n",
+        "\n",
+        "    # X/Y SPLIT\n",
+        "\n",
+        "    if features:\n",
+        "        x = df[features]\n",
+        "    else:\n",
+        "        x = df.drop(columns=[target])\n",
+        "\n",
+        "    y = df[target]\n",
+        "    print(\"FEATURES:\", x.columns.tolist())\n",
+        "\n",
+        "    # SCALING\n",
+        "\n",
+        "    if scale:\n",
+        "        x = (x - x.mean()) / x.std()\n",
+        "\n",
+        "    # TRAIN/TEST SPLITT\n",
+        "\n",
+        "    x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=99)\n",
+        "\n",
+        "    # MODEL TRAINING\n",
+        "\n",
+        "    model = LinearRegression()\n",
+        "    model.fit(x_train, y_train)\n",
+        "\n",
+        "    print(\"--------\")\n",
+        "    print(\"COEFS:\")\n",
+        "    coefs = Series(model.coef_, index=x.columns)\n",
+        "    print(coefs.sort_values(ascending=False))\n",
+        "\n",
+        "\n",
+        "    print(\"--------\")\n",
+        "    y_pred_train = model.predict(x_train)\n",
+        "    r2_train = r2_score(y_train, y_pred_train)\n",
+        "    print(\"R2 (TRAIN):\", round(r2_train, 3))\n",
+        "\n",
+        "    # EVALUATION\n",
+        "\n",
+        "    print(\"--------\")\n",
+        "    y_pred = model.predict(x_test)\n",
+        "    r2 = r2_score(y_test, y_pred)\n",
+        "    print(\"R2 (TEST):\", round(r2, 3))\n"
+      ],
+      "id": "c60ee66e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "As we saw earlier, our baseline model (using all the features) gets us an r-squared of around 60%.\n"
+      ],
+      "id": "ed73d1bb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval(df)"
+      ],
+      "id": "d95c3ba1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can start by using a single feature, and build from there.\n",
+        "\n",
+        "We saw earlier how income is most highly correlated with the target, and its coefficient was high in magnitude. This would be a great feature to start with.\n"
+      ],
+      "id": "cb72dbda"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval(df, features=[\"income\"])"
+      ],
+      "id": "e742c283",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We saw earlier a linear relationship between income and bedrooms, so it's no surprise adding bedrooms to the model does not provide much \"lift\" (i.e. help improve performance):\n"
+      ],
+      "id": "49a87a0c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval(df, features=[\"income\", \"bedrooms\"])"
+      ],
+      "id": "3e68a473",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Three was a linear relationship between bedrooms and rooms, so we see similar results adding rooms as a feature:\n"
+      ],
+      "id": "c5a8332c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval(df, features=[\"income\", \"rooms\"])"
+      ],
+      "id": "340dd27b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Using rooms and bedrooms improves performance a bit, but due to collinearity we probably wouldn't want to use them both.\n"
+      ],
+      "id": "e3bd925e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval(df, features=[\"income\", \"rooms\", \"bedrooms\"])"
+      ],
+      "id": "69996860",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "What about geographic region only?\n"
+      ],
+      "id": "73b05afe"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval(df, features=[\"latitude\", \"longitude\"])"
+      ],
+      "id": "7a340f38",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The features with the highest magnitude coefficients are income, latitude, and longitude, so we can see the results from using just these features.\n"
+      ],
+      "id": "c8464e20"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval(df, features=[\"income\", \"latitude\", \"longitude\"])"
+      ],
+      "id": "4733a5aa",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Just these three features give us more or less the same amount of predictive ability as using all the features. So if we take into account model complexity, we might choose these three as the final set of features."
+      ],
+      "id": "0e846229"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
