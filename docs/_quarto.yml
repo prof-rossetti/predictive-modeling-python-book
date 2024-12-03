@@ -68,6 +68,7 @@ book:
     - index.qmd
     - notes/predictive-modeling.qmd
 
+    - "-------------"
     - part: "Machine Learning Foundations"
       chapters:
         - href: notes/ml-foundations/index.qmd
@@ -82,7 +83,7 @@ book:
         - href: notes/ml-foundations/data-scaling.qmd
           text: "Data Scaling"
 
-    #- "-------------"
+    - "-------------"
     #- href: notes/supervised-learning.qmd
     #  text: "Supervised Learning Overview"
 
@@ -102,6 +103,8 @@ book:
 
         #- href: notes/regression/ridge-lasso.qmd
         #  text: "Regression with Regularization (Ridge and Lasso)"
+
+    - "-----------"
 
     - part: "Regression for Time-series Forecasting"
       chapters:
@@ -129,6 +132,7 @@ book:
         - href: notes/autoregressive-models/arima.qmd
           text: "Autoregressive Models w/ `statsmodels`"
 
+    - "-----------"
     - part: "Classification"
       chapters:
         - href: notes/classification/index.qmd
@@ -137,8 +141,8 @@ book:
         #- href: notes/classification/logistic.qmd
         #  text: "Logistic Regression"
 
-        #- href: notes/classification/binary.qmd
-        #  text: "Binary Classification"
+        - href: notes/classification/binary.qmd
+          text: "Binary Classification"
 
         #- href: notes/classification/multiclass.qmd
         #  text: "Multi-class Classification"
