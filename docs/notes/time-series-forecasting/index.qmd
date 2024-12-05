@@ -1,6 +1,6 @@
 # Regression for Time Series Forecasting (with `sklearn`)
 
-Let's explore an example of how to use regression to perform trend analysis with time series data[@machine_learning_mastery_autoregression].
+Let's explore an example of how to use regression to perform trend analysis with time series data[@machine_learning_mastery_autoregression, @machine_learning_mastery_time_series].
 
 ```{python}
 #| echo: false
