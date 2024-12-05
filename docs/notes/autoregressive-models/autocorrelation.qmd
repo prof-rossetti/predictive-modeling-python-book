@@ -22,7 +22,7 @@ In addition to interpreting the autocorrelation values themselves, we can examin
 
   + Exponential decay in the ACF indicates a stationary autoregressive process (AR model).
   + One or two significant spikes followed by rapid decay suggest a moving average process (MA model).
-  + Slow decay or oscillation often suggests non-stationarity, which may require differencing to stabilize the series.
+  + Slow decay or oscillation often suggests non-stationarity, which may require differencing to stabilize the series[@nau_arima_forecasting].
 
 
 ```{python}
