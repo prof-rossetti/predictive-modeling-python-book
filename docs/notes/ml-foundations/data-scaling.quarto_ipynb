@@ -1,0 +1,179 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "format:\n",
+        "  html:\n",
+        "    code-fold: false\n",
+        "jupyter: python3\n",
+        "execute:\n",
+        "  cache: true # re-render only when source changes\n",
+        "---\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "# Data Scaling\n",
+        "\n",
+        "**Data scaling** is a data processing technique used to adjust the range of features (input variables) in a dataset to a common scale, without distorting differences in the relative ranges of values.\n",
+        "\n",
+        "To illustrate the motivations behind data scaling, let's revisit our familiar dataset of economic indicators:\n"
+      ],
+      "id": "c7e43bad"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import read_csv\n",
+        "\n",
+        "filename = \"monthly-indicators.csv\"\n",
+        "df = read_csv(f\"https://raw.githubusercontent.com/prof-rossetti/python-for-finance/main/docs/data/{filename}\")\n",
+        "df.head()"
+      ],
+      "id": "8bd6a700",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(len(df))\n",
+        "print(df[\"timestamp\"].min(), \"...\", df[\"timestamp\"].max())"
+      ],
+      "id": "62e0f81a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "When we plot this data on a graph, we are not able to see the movement of the federal funds rate, because its scale is so much smaller than the other indicators:\n"
+      ],
+      "id": "3fd821bd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "chart_df = df.copy()\n",
+        "chart_df.index = df[\"timestamp\"]\n",
+        "chart_df.drop(columns=[\"timestamp\"], inplace=True)\n",
+        "\n",
+        "px.line(chart_df, y=[\"cpi\", \"fed\", \"spy\", \"gld\"],\n",
+        "        title=\"Financial indicators over time (unscaled)\"\n",
+        ")"
+      ],
+      "id": "98ab3867",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Let's fix this by scaling the data.\n",
+        "\n",
+        "Scaling the data will make it easier to plot all these different series on a graph, so we can start to get a sense of how their movements might correlate (in an unofficial way).\n",
+        "\n",
+        "## Data Scaling Techniques\n",
+        "\n",
+        "### Min-Max Scaling\n",
+        "\n",
+        "One scaling approach called **min-max scaling** calls for dividing each value over the maximum value in that column, essentially expressing each value as a percentage of the greatest value.\n"
+      ],
+      "id": "cb535d51"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "scaled_df = df.copy()\n",
+        "scaled_df.index = df[\"timestamp\"]\n",
+        "scaled_df.drop(columns=[\"timestamp\"], inplace=True)\n",
+        "\n",
+        "# MIN-MAX SCALING:\n",
+        "# dividing each value by that column's maximum value\n",
+        "scaled_df = scaled_df / scaled_df.max()\n",
+        "\n",
+        "px.line(scaled_df, y=[\"cpi\", \"fed\", \"spy\", \"gld\"],\n",
+        "        title=\"Financial indicators over time (min-max scaled)\"\n",
+        ")"
+      ],
+      "id": "94bd1e9e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "When we use min-max scaling, resulting values will be expressed on a scale between zero and one.\n",
+        "\n",
+        "### Standard Scaling\n",
+        "\n",
+        "An alternative, more rigorous, scaling approach, called **standard scaling** or z-score normalization, mean-centers the data and normalizes by the standard deviation:\n"
+      ],
+      "id": "32a44f7f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "scaled_df = df.copy()\n",
+        "scaled_df.index = df[\"timestamp\"]\n",
+        "scaled_df.drop(columns=[\"timestamp\"], inplace=True)\n",
+        "\n",
+        "# STANDARD SCALING:\n",
+        "# standardization / normalization\n",
+        "scaled_df = (scaled_df - scaled_df.mean()) / scaled_df.std()\n",
+        "\n",
+        "px.line(scaled_df, y=[\"cpi\", \"fed\", \"spy\", \"gld\"],\n",
+        "        title=\"Financial indicators over time (standard/z-score scaled)\"\n",
+        ")"
+      ],
+      "id": "c3575eb9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "When we use standard scaling, resulting values will be expressed on a scale which is centered around zero.\n",
+        "\n",
+        "Now that we have scaled the data, we can more easily compare the movements of all the datasets. Which indicators have been moving up or down at a time when another indicator has been moving up or down. Are there any time periods where we might start to suspect correlation in a positive or negative way?\n",
+        "\n",
+        "\n",
+        "## Importance for Machine Learning\n",
+        "\n",
+        "\n",
+        "Data scaling is relevant in machine learning when using multiple input features that have different scales. In these situations, scaling ensures different features contribute proportionally to the model during training. If features are not scaled, those features with larger ranges may disproportionately influence the model, leading to biased predictions or slower convergence during training.\n",
+        "\n",
+        "Some models, such as ordinary least squares linear regression, are less sensitive to the range of input data, and with these models, scaling the data may not make a noticeable difference in performance.\n",
+        "\n",
+        "However other algorithms, especially those which utilize distance-based calculations (e.g. Support Vector Machines, or K-Nearest Neighbors) or regularization methods (e.g. Ridge or Lasso regression), are particularly sensitive to the range of the input data and perform better when all features are on a similar scale.\n",
+        "\n",
+        "By scaling data, using techniques like min-max scaling or standard scaling, we ensure that each feature contributes equally, improving model performance, training efficiency, and the accuracy of predictions."
+      ],
+      "id": "127079d7"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

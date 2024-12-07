@@ -1,0 +1,415 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Regression for Time Series Forecasting (with `sklearn`)\n",
+        "\n",
+        "Let's explore an example of how to use regression to perform trend analysis with time series data.\n"
+      ],
+      "id": "b5bc318a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "\n",
+        "import warnings\n",
+        "warnings.simplefilter(action='ignore', category=FutureWarning)\n",
+        "\n",
+        "from pandas import set_option\n",
+        "set_option('display.max_rows', 6)"
+      ],
+      "id": "7db725fb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Loading\n",
+        "\n",
+        "As an example time series dataset, let's consider this dataset of U.S. population over time, from the Federal Reserve Economic Data (FRED).\n",
+        "\n",
+        "Fetching the data, going back as far as possible:\n"
+      ],
+      "id": "3ac31bb8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas_datareader import get_data_fred\n",
+        "\n",
+        "DATASET_NAME = \"POPTHM\"\n",
+        "df = get_data_fred(DATASET_NAME, start=\"1900-01-01\")\n",
+        "print(len(df))\n",
+        "df"
+      ],
+      "id": "eda7f3ce",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-tip title=\"Data Source\"}\n",
+        "Here is some more information about the [\"POPTHM\" dataset](https://fred.stlouisfed.org/series/POPTHM):\n",
+        "\n",
+        "\"Population includes resident population plus armed forces overseas. The monthly estimate is the average of estimates for the first of the month and the first of the following month.\"\n",
+        "\n",
+        "The data is expressed in \"Thousands\", and is \"Not Seasonally Adjusted\".\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "Wrangling the data, including renaming columns and [converting the date index](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#converting-to-timestamps) to be datetime-aware, may make it easier for us to work with this data:\n"
+      ],
+      "id": "d63ed2e9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import to_datetime\n",
+        "\n",
+        "df.rename(columns={DATASET_NAME: \"population\"}, inplace=True)\n",
+        "df.index.name = \"date\"\n",
+        "df.index = to_datetime(df.index)\n",
+        "df"
+      ],
+      "id": "4abfc0fc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Exploration\n",
+        "\n",
+        "Exploring trends:\n"
+      ],
+      "id": "54eec8f3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.scatter(df, y=\"population\", title=\"US Population (Monthly) vs Trend\",\n",
+        "            labels={\"population\":\"US Population (thousands)\", \"value\":\"\"},\n",
+        "            trendline=\"ols\", trendline_color_override=\"red\", height=350,\n",
+        ")"
+      ],
+      "id": "94180775",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Looks like a possible linear trend. Let's perform a more formal regression analysis.\n",
+        "\n",
+        "\n",
+        "## Data Encoding\n",
+        "\n",
+        "Because we need numeric features to perform a regression, we convert the dates to a linear time step of integers (after sorting the data first for good measure):\n"
+      ],
+      "id": "28f635b0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.sort_values(by=\"date\", ascending=True, inplace=True)\n",
+        "\n",
+        "df[\"time_step\"] = range(1, len(df) + 1)\n",
+        "df"
+      ],
+      "id": "577f1ff1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We will use the numeric time step as our input variable (`x`), to predict the population (`y`).\n",
+        "\n",
+        "## Data Splitting\n",
+        "\n",
+        "### X/Y Split\n",
+        "\n",
+        "Identifying dependent and independent variables:\n"
+      ],
+      "id": "00002c1f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#x = df[[\"date\"]] # we need numbers not strings\n",
+        "x = df[[\"time_step\"]]\n",
+        "\n",
+        "y = df[\"population\"]\n",
+        "\n",
+        "print(\"X:\", x.shape)\n",
+        "print(\"Y:\", y.shape)"
+      ],
+      "id": "7391fce1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Train/Test Split\n",
+        "\n",
+        "Splitting data sequentially, where earlier data is used in training, and recent data is used for testing:\n"
+      ],
+      "id": "c7a97468"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(len(df))\n",
+        "\n",
+        "training_size = round(len(df) * .8)\n",
+        "print(training_size)\n",
+        "\n",
+        "x_train = x.iloc[:training_size] # slice all before\n",
+        "y_train = y.iloc[:training_size] # slice all before\n",
+        "\n",
+        "x_test = x.iloc[training_size:] # slice all after\n",
+        "y_test = y.iloc[training_size:] # slice all after\n",
+        "print(\"TRAIN:\", x_train.shape)\n",
+        "print(\"TEST:\", x_test.shape)"
+      ],
+      "id": "9344f160",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Model Selection and Training\n",
+        "\n",
+        "Training a linear regression model on the training data:\n"
+      ],
+      "id": "9cd74cae"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.linear_model import LinearRegression\n",
+        "\n",
+        "model = LinearRegression()\n",
+        "\n",
+        "model.fit(x_train, y_train)"
+      ],
+      "id": "2ea4d71c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "After training, we have access to the learned weights, as well as the line of best fit (i.e. the trend line):\n"
+      ],
+      "id": "94ceaafe"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(\"COEFS:\", model.coef_)\n",
+        "print(\"INTERCEPT:\", model.intercept_)\n",
+        "print(\"------------------\")\n",
+        "print(f\"y = {model.coef_[0].round(3)}x + {model.intercept_.round(3)}\")"
+      ],
+      "id": "27f001d1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "In this case, we interpret the line of best fit to observe how much the population is expected to grow on average per time step, as well as the population trend value at the earliest time step.\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "Remember in this dataset the population is expressed in thousands.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Model Prediction and Evaluation\n",
+        "\n",
+        "We use the trained model to make predictions on the test set, and then calculate regression metrics to see how well the model is doing:\n"
+      ],
+      "id": "1d9a2741"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import mean_squared_error, r2_score\n",
+        "\n",
+        "y_pred = model.predict(x_test)\n",
+        "\n",
+        "mse = mean_squared_error(y_test, y_pred)\n",
+        "print(\"MSE:\", round(mse, 4))\n",
+        "\n",
+        "r2 = r2_score(y_test, y_pred)\n",
+        "print(\"R2:\", round(r2, 4))"
+      ],
+      "id": "57e58a6f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "A very high r-squared value represents a strong linear trend.\n",
+        "\n",
+        "Plotting predictions (trend line):\n"
+      ],
+      "id": "00d1c5b5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df[\"prediction\"] = model.predict(df[[\"time_step\"]])\n",
+        "df[\"error\"] = df[\"population\"] - df[\"prediction\"]\n",
+        "\n",
+        "px.line(df, y=[\"population\", \"prediction\"], height=350,\n",
+        "    title=\"US Population (Monthly) vs Regression Predictions (Trend)\",\n",
+        "    labels={\"value\":\"\"}\n",
+        ")"
+      ],
+      "id": "e2be7ffa",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Forecasting\n",
+        "\n",
+        "Assembling a dataset of future dates and time steps (which we can use as inputs to the trained model to make predictions about the future):\n"
+      ],
+      "id": "59ecd0cb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import date_range, DateOffset, DataFrame\n",
+        "\n",
+        "last_time_step = df['time_step'].iloc[-1]\n",
+        "last_date = df.index[-1]\n",
+        "next_date = last_date + DateOffset(months=1)\n",
+        "\n",
+        "FUTURE_MONTHS = 36\n",
+        "# frequency of \"M\" for end of month, \"MS\" for beginning of month\n",
+        "future_dates = date_range(start=next_date, periods=FUTURE_MONTHS, freq='MS')\n",
+        "future_time_steps = range(last_time_step + 1, last_time_step + FUTURE_MONTHS + 1)\n",
+        "\n",
+        "df_future = DataFrame({'time_step': future_time_steps}, index=future_dates)\n",
+        "df_future.index.name = \"date\"\n",
+        "df_future"
+      ],
+      "id": "6a79ed47",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Predicting future values:\n"
+      ],
+      "id": "059ef463"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df_future[\"prediction\"] = model.predict(df_future[[\"time_step\"]])\n",
+        "df_future"
+      ],
+      "id": "ce0282e0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Concatenating historical data with future data:\n"
+      ],
+      "id": "99a2868a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import concat\n",
+        "\n",
+        "chart_df = concat([df, df_future])\n",
+        "chart_df"
+      ],
+      "id": "0d9fdf7b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-note}\n",
+        "The population and error values for future dates are null, because we don't know them yet. Although we are able to make predictions about these values, based on historical trends.\n",
+        ":::\n",
+        "\n",
+        "Plotting trend vs actual, with future predictions:\n"
+      ],
+      "id": "a2207180"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(chart_df[-180:], y=[\"population\", \"prediction\"], height=350,\n",
+        "    title=\"US Population (Monthly) vs Regression Predictions (Trend)\",\n",
+        "    labels={\"value\":\"\"}\n",
+        ")"
+      ],
+      "id": "53da7220",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
