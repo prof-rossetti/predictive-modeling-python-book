@@ -1,7 +1,7 @@
 # Stationarity in Time Series Data
 
 
-A **stationary** time series is one whose statistical properties, such as mean, variance, and autocorrelation, do not change over time. In other words, the data fluctuates around a constant mean and has constant variance.
+A **stationary** time series is one whose statistical properties, such as mean, variance, and autocorrelation, do not change over time. In other words, the data fluctuates around a constant mean and has constant variance[@duke_forecasting_resources].
 
 
 ![Stationary vs non-stationary mean for time series data. [Source](https://miro.medium.com/v2/1*-ecA_r11hpyIEUJSwBAtAA.png).](./../../images/stationary-data-mean.png){height=350}
@@ -17,7 +17,7 @@ Stationarity ensures that the underlying process generating the data remains sta
 There are different types of stationarity, including:
 
 1. **Strict Stationarity**: The distribution of the time series does not change over time. This is quite strict, and rarely occurs in real-world data.
-2. **Weak Stationarity (or Second-Order Stationarity)**: This is the most common type and only requires the mean, variance, and autocorrelation to be constant over time.
+2. **Weak Stationarity (or Second-Order Stationarity)**: This is the most common type and only requires the mean, variance, and autocorrelation to be constant over time[@shumway_stoffer_time_series].
 
 
 
@@ -28,9 +28,9 @@ There are different types of stationarity, including:
 
 In time series analysis, stationarity is a key assumption that greatly influences our choice of which models to use.
 
-  + For **Linear Regression** models: while linear regression does not explicitly require stationarity in the data, regression models generally work better with stationary data, particularly if the relationship between the features and the target is assumed to be stable over time.
+  + For **Linear Regression** models: while linear regression does not explicitly require stationarity in the data, regression models generally work better with stationary data, particularly if the relationship between the features and the target is assumed to be stable over time. (As noted by Hyndman and Athanasopoulos [@hyndman_forecasting], understanding the underlying statistical properties of your time series is crucial for building reliable predictive models.)
 
-  + For **ARIMA (Autoregressive Integrated Moving Average)** models: ARIMA models require the data to be stationary. If the time series is not stationary, the model's assumptions break down, and it will not perform well. The "Integrated (I)" part specifically deals with non-stationarity by differencing the data (i.e. subtracting the previous observation from the current one) to make it stationary.
+  + For **ARIMA (Autoregressive Integrated Moving Average)** models: ARIMA models require the data to be stationary. If the time series is not stationary, the model's assumptions break down, and it will not perform well[@science_direct_arima_garch]. The "Integrated (I)" part specifically deals with non-stationarity by differencing the data (i.e. subtracting the previous observation from the current one) to make it stationary.
 
 ## Testing for Stationarity
 

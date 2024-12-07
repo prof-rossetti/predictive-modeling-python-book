@@ -13,7 +13,7 @@ from pandas import set_option
 set_option('display.max_rows', 6)
 ```
 
-**Auto-Regressive Integrated Moving Average (ARIMA)** is a "method for forecasting or predicting future outcomes based on a historical time series. It is based on the statistical concept of serial correlation, where past data points influence future data points." - [Source: Investopedia](https://www.investopedia.com/terms/a/autoregressive-integrated-moving-average-arima.asp)
+**Auto-Regressive Integrated Moving Average (ARIMA)** is a "method for forecasting or predicting future outcomes based on a historical time series. It is based on the statistical concept of serial correlation, where past data points influence future data points."[@investopedia_arima; @Liu2020] - [Source: Investopedia](https://www.investopedia.com/terms/a/autoregressive-integrated-moving-average-arima.asp)
 
 An ARIMA model has three key components:
 
@@ -23,8 +23,9 @@ An ARIMA model has three key components:
 
   + **Moving Average (MA)** part: involves modeling the relationship between the current value of the series and past forecast errors (residuals). The model adjusts the forecast based on the error terms from previous periods.
 
+(As noted by Kaur et al. [@kaur_autoregressive_models], autoregressive models are particularly valuable in various domains, including environmental forecasting, where understanding temporal dependencies can significantly improve predictive accuracy.)
 
-In practice, ARIMA models may be better at short term forecasting, and may not perform as well in forecasting over the long term.
+In practice, ARIMA models may be better at short term forecasting, and may not perform as well in forecasting over the long term[@Liu2020].
 
 ## Assumption of Stationarity
 

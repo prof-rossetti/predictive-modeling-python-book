@@ -6,7 +6,7 @@ When preparing features (`x` values) for training machine learning models, it's 
 
 So if we have categorical or textual data, we need to use a **data encoding** strategy to represent the data in a different way, transforming the values into numbers.
 
-We'll choose an encoding strategy based on the nature of the data. For categorical data, we'll use either ordinal encoding if there's an inherent order among the categories, or one-hot encoding if no such order exists. For time-series data, we can apply time step encoding to represent the temporal sequence of observations.
+We'll choose an encoding strategy based on the nature of the data. For categorical data, we'll use either ordinal encoding if there's an inherent order among the categories, or one-hot encoding if no such order exists. For time-series data, we can apply time step encoding to represent the temporal sequence of observations[@scikit_learn_preprocessing].
 
 ## Encoding Categorical Data
 
