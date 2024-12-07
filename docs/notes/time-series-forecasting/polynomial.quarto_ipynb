@@ -1,0 +1,651 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "format:\n",
+        "  html:\n",
+        "    #code-fold: false\n",
+        "    number-sections: true\n",
+        "jupyter: python3\n",
+        "execute:\n",
+        "  cache: true # re-render only when source changes\n",
+        "crossref:\n",
+        "  custom:\n",
+        "    - kind: float\n",
+        "      reference-prefix: Equation\n",
+        "      key: eqn\n",
+        "      latex-env: eqn\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Regression with Polynomial Features for Time Series Forecasting\n"
+      ],
+      "id": "c4bd44c2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "\n",
+        "import warnings\n",
+        "warnings.simplefilter(action='ignore', category=FutureWarning)\n",
+        "\n",
+        "from pandas import set_option\n",
+        "set_option('display.max_rows', 6)"
+      ],
+      "id": "4ce99f41",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Loading\n",
+        "\n",
+        "To illustrate an example of a non-linear trend in time series data, let's consider this dataset of U.S. GDP over time, from the Federal Reserve Economic Data (FRED).\n",
+        "\n",
+        "Fetching the data, going back as far as possible:\n"
+      ],
+      "id": "4d28dff8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas_datareader import get_data_fred\n",
+        "\n",
+        "df = get_data_fred(\"GDP\", start=\"1900-01-01\")\n",
+        "df.index.name = \"date\"\n",
+        "df.rename(columns={\"GDP\": \"gdp\"}, inplace=True)\n",
+        "df.head()"
+      ],
+      "id": "cb78e870",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-note title=\"Data Source\"}\n",
+        "Here is some more information about the [\"GDP\" dataset](https://fred.stlouisfed.org/series/GDP):\n",
+        "\n",
+        "\"Gross domestic product (GDP), the featured measure of U.S. output, is the market value of the goods and services produced by labor and property located in the United States.\n",
+        "\n",
+        "The data is expressed in \"Billions of Dollars\", and is a \"Seasonally Adjusted Annual Rate\".\n",
+        "\n",
+        "The dataset frequency is \"Quarterly\".\n",
+        ":::\n",
+        "\n",
+        "## Data Exploration\n",
+        "\n",
+        "Plotting the data over time with a linear trendline to examine a possible linear relationship:\n"
+      ],
+      "id": "78d5d1d1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.scatter(df, y=\"gdp\", title=\"US GDP (Quarterly) vs Linear Trend\", height=450,\n",
+        "           labels={\"gdp\": \"GDP (in billions of USD)\"},\n",
+        "            trendline=\"ols\", trendline_color_override=\"red\"\n",
+        ")"
+      ],
+      "id": "3d515cb0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Linear trend might not be the best fit.\n",
+        "\n",
+        "Plotting the data over time with a Lowess trendline to examine a possible non-linear relationship:\n"
+      ],
+      "id": "d37617f8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.scatter(df, y=\"gdp\", title=\"US GDP (Quarterly) vs Lowess Trend\", height=450,\n",
+        "           labels={\"gdp\": \"GDP (in billions of USD)\"},\n",
+        "            trendline=\"lowess\", trendline_color_override=\"red\"\n",
+        ")"
+      ],
+      "id": "8bf0c941",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "In this case, a non-linear trend seems to fit better.\n",
+        "\n",
+        "\n",
+        "\n",
+        "To compare the results of a linear vs non-linear trend, let’s train two different regression models, and compare the results.\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Linear Regression\n",
+        "\n",
+        "\n",
+        "Sorting time series data:\n"
+      ],
+      "id": "f450a45f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import to_datetime\n",
+        "\n",
+        "df.sort_values(by=\"date\", ascending=True, inplace=True)\n",
+        "df[\"time_step\"] = range(1, len(df)+1)\n",
+        "df.head()"
+      ],
+      "id": "4f0439ea",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Identifying labels and features (x/y split):\n"
+      ],
+      "id": "eb578855"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x = df[['time_step']]\n",
+        "y = df['gdp']\n",
+        "print(x.shape)\n",
+        "print(y.shape)"
+      ],
+      "id": "2b63610f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Train/Test Split\n",
+        "\n",
+        "Test/train split for time-series data:\n"
+      ],
+      "id": "08e56e0c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "training_size = round(len(df) * .8)\n",
+        "\n",
+        "x_train = x.iloc[:training_size] # all before cutoff\n",
+        "y_train = y.iloc[:training_size] # all before cutoff\n",
+        "\n",
+        "x_test = x.iloc[training_size:] # all after cutoff\n",
+        "y_test = y.iloc[training_size:] # all after cutoff\n",
+        "\n",
+        "print(\"TRAIN:\", x_train.shape, y_train.shape)\n",
+        "print(\"TEST:\", x_test.shape, y_test.shape)"
+      ],
+      "id": "b8ea8dd2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Model Training\n",
+        "\n",
+        "Training a linear regression model:\n"
+      ],
+      "id": "f122cdfe"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.linear_model import LinearRegression\n",
+        "\n",
+        "model = LinearRegression()\n",
+        "model.fit(x_train, y_train)"
+      ],
+      "id": "ea1294ef",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining the coefficients and line of best fit:\n"
+      ],
+      "id": "6317ec8d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(\"COEF:\", model.coef_.tolist())\n",
+        "print(\"INTERCEPT:\", model.intercept_)\n",
+        "print(\"--------------\")\n",
+        "print(f\"EQUATION FOR LINE OF BEST FIT:\")\n",
+        "print(\"y =\", f\"{model.coef_[0].round(3)}(x)\",\n",
+        "        \"+\", model.intercept_.round(3),\n",
+        ")\n"
+      ],
+      "id": "f61f1a93",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining the training results:\n"
+      ],
+      "id": "408904d2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import mean_squared_error, r2_score\n",
+        "\n",
+        "y_pred_train = model.predict(x_train)\n",
+        "\n",
+        "r2_train = r2_score(y_train, y_pred_train)\n",
+        "print(\"R^2 (TRAINING):\", r2_train)\n",
+        "\n",
+        "mse_train = mean_squared_error(y_train, y_pred_train)\n",
+        "print(\"MSE (TRAINING):\", mse_train)"
+      ],
+      "id": "3839840c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "A strong positive that the linear regression model explains about 85% of the variance in the GDP data during the training period. It suggests that the model fits the training data reasonably well.\n",
+        "\n",
+        "These results are promising, however what we really care about is how the model generalizes to the test set.\n",
+        "\n",
+        "### Model Evaluation\n",
+        "\n",
+        "\n",
+        "Examining the test results:\n"
+      ],
+      "id": "4f283b31"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y_pred = model.predict(x_test)\n",
+        "\n",
+        "r2 = r2_score(y_test, y_pred)\n",
+        "print(\"R^2 (TEST):\", r2.round(3))\n",
+        "\n",
+        "mse = mean_squared_error(y_test, y_pred)\n",
+        "print(\"MSE (TEST):\", mse.round(3))"
+      ],
+      "id": "897c0a8f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-warning title=\"Results interpretation\"}\n",
+        "A negative r-squared value suggests the model's predictions are very poor, and even less accurate than using the average of the target variable as the prediction for all instances. Essentially, the linear regression model is providing predictions that are significantly off from the actual values, indicating a bad fit to the data.\n",
+        ":::\n",
+        "\n",
+        "It seems although the model performs well on the training set, it performs very poorly on future data it hasn't seen yet, and doesn't generalize beyond the training period.\n",
+        "\n",
+        "\n",
+        "\n",
+        "Storing predictions back in the original dataset, to enable comparisons of predicted vs actual values:\n"
+      ],
+      "id": "633cd980"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.loc[x_train.index, \"y_pred_train\"] = y_pred_train\n",
+        "df.loc[x_test.index, \"y_pred_test\"] = y_pred\n",
+        "df"
+      ],
+      "id": "8dc0695f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Charting the predictions against the actual values:\n"
+      ],
+      "id": "0341d8fd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#import plotly.express as px\n",
+        "#\n",
+        "#fig = px.line(df, y=['gdp', 'y_pred_train', 'y_pred_test'],\n",
+        "#              title='Linear Regression on GDP Ta andime Series Data',\n",
+        "#              labels={'value': 'GDP', 'date': 'Date'},\n",
+        "#)\n",
+        "## update legend:\n",
+        "#fig.update_traces(line=dict(color='blue'), name=\"Actual GDP\", selector=dict(name='gdp'))\n",
+        "#fig.update_traces(line=dict(color='green'), name=\"Predicted GDP (Train)\", selector=dict#(name='y_pred_train'))\n",
+        "#fig.update_traces(line=dict(color='red'), name=\"Predicted GDP (Test)\", selector=dict#(name='y_pred_test'))\n",
+        "#\n",
+        "#fig.show()"
+      ],
+      "id": "0276a51c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-fold: true\n",
+        "\n",
+        "import plotly.express as px\n",
+        "\n",
+        "def plot_predictions(df, title=\"Linear Regression on GDP Time Series Data\"):\n",
+        "    fig = px.line(df, y=['gdp', 'y_pred_train', 'y_pred_test'],\n",
+        "        labels={'value': 'GDP', 'date': 'Date'}, title=title, height=450\n",
+        "    )\n",
+        "\n",
+        "    # update legend:\n",
+        "    series = [\n",
+        "        (\"gdp\", \"Actual GDP\", \"steelblue\"),\n",
+        "        (\"y_pred_train\", \"Predicted GDP (Train)\", \"green\"),\n",
+        "        (\"y_pred_test\", \"Predicted GDP (Test)\", \"red\"),\n",
+        "    ]\n",
+        "    for colname, name, color in series:\n",
+        "        fig.update_traces(name=name,\n",
+        "            line=dict(color=color),\n",
+        "            selector=dict(name=colname)\n",
+        "    )\n",
+        "\n",
+        "    fig.show()"
+      ],
+      "id": "3abb4f73",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plot_predictions(df)"
+      ],
+      "id": "fc84eb9f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "As we see, the linear trend line is not a good fit.\n",
+        "\n",
+        "Let's see if a non-linear trend can do better.\n",
+        "\n",
+        "## Polynomial Features Regression\n",
+        "\n",
+        "One way to help a linear regression model capture a non-linear trend is to train the model on polynomial features, instead of the original features.\n",
+        "\n",
+        "By transforming the original features into higher-order terms, **polynomial features** allow the model to capture non-linear relationships, offering greater flexibility and improving the model's ability to generalize to more complex patterns in the data.\n",
+        "\n",
+        "In a linear equation, the highest power of the $x$ term is one (a variable raised to the power of one is itself).\n",
+        "\n",
+        "::: {.equation #eqn-linear}\n",
+        "$$\n",
+        "y = mx + b\n",
+        "$$\n",
+        "\n",
+        "Linear equation.\n",
+        ":::\n",
+        "\n",
+        "In a polynomial equation, there can be higher powers for the leading terms. For example in a quadratic equation the highest power of the $x$ term is two:\n",
+        "\n",
+        "\n",
+        "::: {.equation #eqn-quadratic}\n",
+        "$$\n",
+        "y = ax^2 + bx + c\n",
+        "$$\n",
+        "\n",
+        "Quadratic equation.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "Creating polynomial features, using the [`PolynomialFeatures` class](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PolynomialFeatures.html) from `sklearn`. In this case, setting `degree=2` creates terms for $x^2$, $𝑥$, and the intercept term:\n"
+      ],
+      "id": "debcd557"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.preprocessing import PolynomialFeatures\n",
+        "from pandas import DataFrame\n",
+        "\n",
+        "poly = PolynomialFeatures(degree=2)\n",
+        "x_poly = poly.fit_transform(x)\n",
+        "\n",
+        "x_poly = DataFrame(x_poly, columns=[\"const\", \"time_step\", \"time_step_squared\"])\n",
+        "x_poly.index = x.index\n",
+        "x_poly"
+      ],
+      "id": "81420f3e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Splitting the new features using sequential split, in the same way as the original features:\n"
+      ],
+      "id": "a25a6f1b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x_train = x_poly.iloc[:training_size] # all before cutoff\n",
+        "x_test = x_poly.iloc[training_size:] # all after cutoff\n",
+        "\n",
+        "print(\"TRAIN:\", x_train.shape, y_train.shape)\n",
+        "print(\"TEST:\", x_test.shape, y_test.shape)"
+      ],
+      "id": "41289f1a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Training a linear regression model on the polynomial features:\n"
+      ],
+      "id": "10384683"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.linear_model import LinearRegression\n",
+        "\n",
+        "model = LinearRegression()\n",
+        "model.fit(x_train, y_train)"
+      ],
+      "id": "4d967fa3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining the coefficients and line of best fit:\n"
+      ],
+      "id": "0bf7d35c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(\"COEF:\", model.coef_.round(3).tolist())\n",
+        "print(\"INTERCEPT:\", model.intercept_.round(3))\n",
+        "print(\"--------------\")\n",
+        "print(f\"EQUATION FOR LINE OF BEST FIT:\")\n",
+        "print(\"y =\", f\"{model.coef_[2].round(3)}(x^2)\",\n",
+        "        \"+\", f\"{model.coef_[1].round(3)}(x)\",\n",
+        "        \"+\", model.intercept_.round(3),\n",
+        ")"
+      ],
+      "id": "706e1eef",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining the training results:\n"
+      ],
+      "id": "654645a6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import mean_squared_error, r2_score\n",
+        "\n",
+        "y_pred_train = model.predict(x_train)\n",
+        "\n",
+        "r2_train = r2_score(y_train, y_pred_train)\n",
+        "print(\"R^2 (TRAINING):\", r2_train.round(3))\n",
+        "\n",
+        "mse_train = mean_squared_error(y_train, y_pred_train)\n",
+        "print(\"MSE (TRAINING):\", mse_train.round(3))"
+      ],
+      "id": "77d1bad6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining the test results:\n"
+      ],
+      "id": "9089e1c7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import mean_squared_error, r2_score\n",
+        "\n",
+        "y_pred = model.predict(x_test)\n",
+        "\n",
+        "r2 = r2_score(y_test, y_pred)\n",
+        "print(\"R^2:\", r2.round(3))\n",
+        "\n",
+        "mse = mean_squared_error(y_test, y_pred)\n",
+        "print(\"MSE:\", mse.round(3))"
+      ],
+      "id": "2ab88e7d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "This model does a lot better generalizing to the test data than the original model.\n",
+        "\n",
+        "Storing predictions back in a copy of the original dataset, to enable comparisons of predicted vs actual values:\n"
+      ],
+      "id": "16822a19"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df_poly = df.copy()\n",
+        "df_poly.loc[x_train.index, \"y_pred_train\"] = y_pred_train\n",
+        "df_poly.loc[x_test.index, \"y_pred_test\"] = y_pred"
+      ],
+      "id": "e0fd904a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "title = \"Linear Regression (with Polynomial Features) on GDP Time Series Data\"\n",
+        "plot_predictions(df_poly, title=title)"
+      ],
+      "id": "2307a9ee",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-tip title=\"Interactive dataviz\"}\n",
+        "Zoom in on an area of the graph to examine predictions during a specific time range.\n",
+        ":::\n",
+        "\n",
+        "Here we see although the trend isn't perfect, the model trained on polynomial features captures the data much better than the basic linear trend produced by training a model on the original features."
+      ],
+      "id": "095098e4"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

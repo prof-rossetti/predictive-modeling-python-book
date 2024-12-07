@@ -73,7 +73,7 @@ When we use min-max scaling, resulting values will be expressed on a scale betwe
 
 ### Standard Scaling
 
-An alternative, more rigorous, scaling approach, called **standard scaling** or z-score normalization, mean-centers the data and normalizes by the standard deviation:
+An alternative, more rigorous, scaling approach, called **standard scaling** or z-score normalization, mean-centers the data and normalizes by the standard deviation[@baeldung_normalization_standardization]:
 
 ```{python}
 scaled_df = df.copy()
@@ -103,4 +103,4 @@ Some models, such as ordinary least squares linear regression, are less sensitiv
 
 However other algorithms, especially those which utilize distance-based calculations (e.g. Support Vector Machines, or K-Nearest Neighbors) or regularization methods (e.g. Ridge or Lasso regression), are particularly sensitive to the range of the input data and perform better when all features are on a similar scale.
 
-By scaling data, using techniques like min-max scaling or standard scaling, we ensure that each feature contributes equally, improving model performance, training efficiency, and the accuracy of predictions.
+By scaling data, using techniques like min-max scaling or standard scaling, we ensure that each feature contributes equally, improving model performance, training efficiency, and the accuracy of predictions[@scikit_learn_scaling_importance].

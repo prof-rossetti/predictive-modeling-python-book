@@ -1,0 +1,495 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "#format:\n",
+        "#  html:\n",
+        "#    code-fold: false\n",
+        "jupyter: python3\n",
+        "execute:\n",
+        "  cache: true # re-render only when source changes\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Linear Regression with `statsmodels`\n",
+        "\n",
+        "Let's explore linear regression using a familiar example dataset of student grades. Our goal will be to train a model to predict a student's grade given the number of hours they have studied.\n",
+        "\n",
+        "In this implementation, we will use the `statsmodels` package to achieve this.\n",
+        "\n",
+        "## Data Loading\n",
+        "\n",
+        "Loading the data:\n"
+      ],
+      "id": "885fd408"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-overflow: scroll\n",
+        "#| code-fold: true\n",
+        "\n",
+        "from pandas import read_csv\n",
+        "\n",
+        "repo_url = \"https://raw.githubusercontent.com/prof-rossetti/python-for-finance\"\n",
+        "request_url = f\"{repo_url}/main/docs/data/grades.csv\"\n",
+        "\n",
+        "df = read_csv(request_url)\n",
+        "df.head()"
+      ],
+      "id": "5119f09a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Exploration\n",
+        "\n",
+        "\n",
+        "Dropping null values:\n"
+      ],
+      "id": "18c2c606"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.dropna(inplace=True)\n",
+        "df.tail()"
+      ],
+      "id": "5a57fb7d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Exploring relationship between variables:\n"
+      ],
+      "id": "b4dfa017"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.scatter(df, x=\"StudyHours\", y=\"Grade\", height=350,\n",
+        "            title=\"Relationship between Study Hours and Grades\",\n",
+        "            trendline=\"ols\", trendline_color_override=\"red\",\n",
+        ")"
+      ],
+      "id": "acfc554b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Splitting\n",
+        "\n",
+        "### X/Y Split\n",
+        "\n",
+        "Identifying the dependent and independent variables:\n"
+      ],
+      "id": "4c6570bd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x = df[\"StudyHours\"]\n",
+        "print(x.shape)\n",
+        "\n",
+        "y = df[\"Grade\"]\n",
+        "print(y.shape)"
+      ],
+      "id": "84f4d616",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Adding Constants\n",
+        "\n",
+        "\n",
+        ":::{.callout-note title=\"Note\"}\n",
+        "When using `statsmodels`, the [documentation](https://www.statsmodels.org/stable/generated/statsmodels.regression.linear_model.OLS.html) instructs us to manually add a column of ones (to help the model perform calculations related to the y-intercept):\n",
+        ":::\n"
+      ],
+      "id": "2d866d98"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import statsmodels.api as sm\n",
+        "\n",
+        "x = sm.add_constant(x) # adding in a column of constants, as per the OLS docs\n",
+        "x.head()"
+      ],
+      "id": "1e2f8898",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Train Test Split\n",
+        "\n",
+        "Now we split the training and test sets:\n"
+      ],
+      "id": "cc2e6c32"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.model_selection import train_test_split\n",
+        "\n",
+        "x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=99)\n",
+        "print(\"TRAIN:\", x_train.shape, y_train.shape)\n",
+        "print(\"TEST:\", x_test.shape, y_test.shape)"
+      ],
+      "id": "b506e63c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Model Selection and Training\n",
+        "\n",
+        "Selecting a linear regression (OLS) model, and training it on the training data to learn the ideal weights:\n"
+      ],
+      "id": "0b060d44"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import statsmodels.api as sm\n",
+        "\n",
+        "model = sm.OLS(y_train, x_train, missing=\"drop\")\n",
+        "print(type(model))\n",
+        "\n",
+        "results = model.fit()\n",
+        "print(type(results))"
+      ],
+      "id": "ab96c960",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "It is possible to access the training results, including some summary statistics:\n"
+      ],
+      "id": "e7fe3729"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(results.summary())"
+      ],
+      "id": "dbcea88b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-note title=\"Interpreting P-values\"}\n",
+        "\n",
+        "In a regression analysis, each coefficient (the number associated with a feature in the model) has a corresponding t-statistic that tests whether the coefficient is meaningfully different from zero.\n",
+        "\n",
+        "Interpreting the results:\n",
+        "\n",
+        "  + **T-statistic**: Measures how many standard deviations the coefficient is away from zero. A larger t-statistic suggests that the coefficient is far from zero and potentially significant.\n",
+        "\n",
+        "  + **P-value** (P>|t|): This tells you the probability that the observed t-statistic would occur if the coefficient were actually zero (the null hypothesis). If this probability is very small (typically < 0.05), it means it’s unlikely that the coefficient is zero, suggesting it is statistically significant.\n",
+        "\n",
+        "Interpreting p-values:\n",
+        "\n",
+        "  + A low p-value (typically less than 0.05) suggests that you can reject the null hypothesis, meaning the coefficient is statistically significant and likely has an impact on the dependent variable.\n",
+        "  + A high p-value (greater than 0.05) indicates that the coefficient is not statistically significant, implying that the feature may not contribute meaningfully to the model.\n",
+        ":::\n",
+        "\n",
+        "The training results contain an r-squared score, however this represents the error for the training data. To get the real results of how the model generalizes to the test data, we will calculate the r-squared score and other metrics on the test results later.\n",
+        "\n",
+        "The part of the training results we care about are the the learned weights (i.e. coefficients), which we use to arrive at the line of best fit:\n"
+      ],
+      "id": "86a54039"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(results.params)\n",
+        "print(\"-----------\")\n",
+        "print(f\"y =\", f\"{results.params['StudyHours'].round(3)}x \",\n",
+        "            f\"+ {results.params['const'].round(3)}\"\n",
+        ")"
+      ],
+      "id": "a8af7f8f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The training results also contain the `fittedvalues` (predictions), as well as the `resid` (residuals or errors). We can compare each of the predicted values against the actual known values, to verify the residuals for illustration purposes:\n"
+      ],
+      "id": "d63e30e7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import DataFrame\n",
+        "\n",
+        "# get all rows from the original dataset that wound up in the training set:\n",
+        "training_set = df.loc[x_train.index].copy()\n",
+        "\n",
+        "# create a dataset for the predictions and the residuals:\n",
+        "training_preds = DataFrame({\n",
+        "    \"Predictions\": results.fittedvalues,\n",
+        "    \"Residuals\": results.resid\n",
+        "})\n",
+        "# merge the training set with the results:\n",
+        "training_set = training_set.merge(training_preds, how=\"inner\",\n",
+        "                                  left_index=True, right_index=True\n",
+        ")\n",
+        "\n",
+        "# calculate error for each datapoint:\n",
+        "training_set[\"My Error\"] = training_set[\"Grade\"] - training_set[\"Predictions\"]\n",
+        "training_set"
+      ],
+      "id": "c9c5cae3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "It is possible to calculate the training metrics ourselves, to verify the regression results summary we saw above:\n"
+      ],
+      "id": "2f837fb7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error\n",
+        "\n",
+        "r2 = r2_score(training_set[\"Grade\"], training_set[\"Predictions\"])\n",
+        "print(\"R^2:\", round(r2, 3))\n",
+        "\n",
+        "mae = mean_absolute_error(training_set[\"Grade\"], training_set[\"Predictions\"])\n",
+        "print(\"MAE:\", round(mae, 3))\n",
+        "\n",
+        "mse = mean_squared_error(training_set[\"Grade\"], training_set[\"Predictions\"])\n",
+        "print(\"MSE:\", round(mse,3))\n",
+        "\n",
+        "rmse = mse ** .5\n",
+        "print(\"RMSE:\", rmse.round(3))"
+      ],
+      "id": "a576b053",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Remember, these metrics only tell us about the predictive accuracy on the training data, and we care more about evaluating metrics on the test set.\n",
+        "\n",
+        "## Model Predictions and Evaluation\n",
+        "\n",
+        "Alright, we trained the model, but how well does it do in making predictions?\n",
+        "\n",
+        "We use the trained model to make predictions on the unseen (test) data:\n"
+      ],
+      "id": "c7ddcb9e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "preds = results.get_prediction(x_test)\n",
+        "print(type(preds))\n",
+        "\n",
+        "preds_df = preds.summary_frame(alpha=0.05)\n",
+        "preds_df"
+      ],
+      "id": "634a5abb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "When we use the `summary_frame` method on prediction results, it returns a `DataFrame` with several columns. Here's a breakdown of what they mean:\n",
+        "\n",
+        "  + **Prediction** (`mean`): This is the predicted value for each observation based on the model. It's essentially the point prediction (ŷ) for the corresponding input.\n",
+        "\n",
+        "  + **Standard Error** (`mean_se`): This stands for the standard error of the predicted mean. It measures the uncertainty associated with the predicted value due to sampling variability. A smaller mean_se indicates higher confidence in the predicted mean.\n",
+        "\n",
+        "- **Confidence Interval** (`mean_ci_lower` and `mean_ci_upper`): Represents the range in which the true mean prediction is likely to lie. For predicting the *average* value (e.g. \"the average apple weight is between 140 and 160 grams\").\n",
+        "- **Prediction Interval** (`obs_ci_lower` and `obs_ci_upper`): Represents the range in which an individual new observation is likely to lie. For predicting the range where *individual* values could fall (e.g. \"an individual apple might weigh between 120 and 180 grams\").\n",
+        "\n",
+        "\n",
+        "\n",
+        "Merging the actual values in, so we can compare predicted values vs actual values:\n"
+      ],
+      "id": "ca5e965f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# reconstruct test set:\n",
+        "test_set = df.loc[x_test.index].copy()\n",
+        "\n",
+        "# merge in prediction results:\n",
+        "test_set = test_set.merge(preds_df, how=\"inner\",\n",
+        "                         left_index=True, right_index=True\n",
+        ")\n",
+        "test_set.rename(columns={\"mean\":\"Prediction\", \"mean_se\": \"Standard Error\",\n",
+        "                        \"mean_ci_upper\": \"CI Upper\", \"mean_ci_lower\": \"CI Lower\",\n",
+        "                        \"obs_ci_upper\": \"PI Upper\", \"obs_ci_lower\": \"PI Lower\",\n",
+        "                        }, inplace=True\n",
+        ")\n",
+        "test_set[\"My Error\"] = test_set[\"Grade\"] - test_set[\"Prediction\"]\n",
+        "test_set"
+      ],
+      "id": "c71e0b3d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Visualizing the predictions:\n"
+      ],
+      "id": "a79bf42a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-fold: true\n",
+        "\n",
+        "import plotly.express as px\n",
+        "\n",
+        "chart_df = test_set.copy()\n",
+        "\n",
+        "# Create the plot\n",
+        "fig = px.scatter(chart_df, x=\"StudyHours\", y=\"Grade\", height=350,\n",
+        "                 title=\"True vs Predicted Grade (with Pred Interval and Confidence Interval)\"\n",
+        "                 )\n",
+        "\n",
+        "fig.add_scatter(x=chart_df[\"StudyHours\"], y=chart_df['Prediction'],\n",
+        "                mode='lines+markers',\n",
+        "                name='Prediction (with PI)',\n",
+        "                marker=dict(color='mediumpurple'), #size=10, symbol=\"x\"\n",
+        "                error_y=dict(type='data', symmetric=False,\n",
+        "                             array=chart_df['PI Upper'],\n",
+        "                             arrayminus=chart_df['PI Lower']),\n",
+        "                legendrank=1)\n",
+        "\n",
+        "fig.add_scatter(x=chart_df[\"StudyHours\"], y=chart_df['Prediction'],\n",
+        "                mode='lines+markers',\n",
+        "                name='Prediction (with CI)',\n",
+        "                marker=dict(color='lightblue',# size=10, #symbol=\"x\"\n",
+        "                ),\n",
+        "                error_y=dict(type='data', symmetric=False,\n",
+        "                             array=chart_df['CI Upper'],\n",
+        "                             arrayminus=chart_df['CI Lower']),\n",
+        "                legendrank=1)\n",
+        "\n",
+        "# Now add the scatter for the true values again, placing this plot behind\n",
+        "# (hack to get the actual values in front)\n",
+        "fig.add_scatter(x=chart_df[\"StudyHours\"], y=chart_df['Grade'],\n",
+        "                mode='markers',\n",
+        "                name='True Value',\n",
+        "                marker=dict(color='blue', size=10, symbol=\"x\"),\n",
+        "                legendrank=2)\n",
+        "\n",
+        "fig.show()"
+      ],
+      "id": "28a95640",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Evaluating the model using our evaluation metrics from `sklearn`:\n"
+      ],
+      "id": "0493cf8e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error\n",
+        "\n",
+        "y_pred = test_set[\"Prediction\"]\n",
+        "\n",
+        "r2 = r2_score(y_test, y_pred)\n",
+        "print(\"R^2:\", round(r2, 3))\n",
+        "\n",
+        "mae = mean_absolute_error(y_test, y_pred)\n",
+        "print(\"MAE:\", round(mae, 3))\n",
+        "\n",
+        "mse = mean_squared_error(y_test, y_pred)\n",
+        "print(\"MSE:\", round(mse,3))\n",
+        "\n",
+        "rmse = mse ** .5\n",
+        "print(\"RMSE:\", rmse.round(3))"
+      ],
+      "id": "14bc8160",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We see the same results on the test set that we did with the `sklearn` regression implementation."
+      ],
+      "id": "5e79d2dc"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

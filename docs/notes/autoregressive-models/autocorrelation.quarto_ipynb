@@ -1,0 +1,532 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Autocorrelation\n",
+        "\n",
+        "**Autocorrelation** is a statistical concept that measures the relationship between a variable's current value and its past values over successive time intervals.\n",
+        "\n",
+        "In time series analysis, autocorrelation helps identify patterns and dependencies in data, particularly when dealing with sequences of observations over time, such as stock prices, temperature data, or sales figures. Autocorrelation analysis is helpful for detecting trends, periodicities, and other temporal patterns in the data, as well as for developing predictive models.\n",
+        "\n",
+        "In predictive modeling, especially for time series forecasting, autocorrelation is essential for selecting the number of lagged observations (or lags) to use in autoregressive models. By calculating the autocorrelation for different lag intervals, it is possible to determine how much influence past values have on future ones. This process helps us choose the optimal lag length, which in turn can improve the accuracy of forecasts.\n",
+        "\n",
+        "\n",
+        "## Interpreting Autocorrelation\n",
+        "\n",
+        "Similar to correlation, autocorrelation will range in values from -1 to 1. A positive autocorrelation indicates that a value tends to be similar to preceding values, while a negative autocorrelation suggests that a value is likely to differ from previous observations.\n",
+        "\n",
+        "  + **Strong Positive Autocorrelation**: A high positive autocorrelation at a particular lag (close to +1) indicates that past values strongly influence future values at that lag. This could mean that the series has a strong trend or persistent behavior, where high values are followed by high values and low values by low ones.\n",
+        "\n",
+        "  + **Strong Negative Autocorrelation**: A strong negative autocorrelation (close to -1) suggests an oscillatory pattern, where high values tend to be followed by low values and vice versa.\n",
+        "\n",
+        "  + **Weak Autocorrelation**: If the ACF value is close to zero for a particular lag, it suggests that the time series does not exhibit a strong relationship with its past values at that lag. This can indicate that the observations at that lag are not predictive of future values.\n",
+        "\n",
+        "\n",
+        "In addition to interpreting the autocorrelation values themselves, we can examine the autocorrelation plot to identify patterns:\n",
+        "\n",
+        "  + Exponential decay in the ACF indicates a stationary autoregressive process (AR model).\n",
+        "  + One or two significant spikes followed by rapid decay suggest a moving average process (MA model).\n",
+        "  + Slow decay or oscillation often suggests non-stationarity, which may require differencing to stabilize the series.\n"
+      ],
+      "id": "524d5c91"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-fold: true\n",
+        "\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "from statsmodels.tsa.arima_process import ArmaProcess\n",
+        "import statsmodels.api as sm\n",
+        "\n",
+        "# Setting random seed for reproducibility\n",
+        "np.random.seed(42)\n",
+        "\n",
+        "# Generating AR(1) process (exponential decay in ACF)\n",
+        "ar1 = np.array([1, -0.8])  # AR coefficient\n",
+        "ma1 = np.array([1])        # MA coefficient\n",
+        "ar1_process = ArmaProcess(ar1, ma1).generate_sample(nsample=100)\n",
+        "ar1_acf = sm.tsa.acf(ar1_process, nlags=20)\n",
+        "\n",
+        "# Generating MA(1) process (significant spike followed by rapid decay)\n",
+        "ar2 = np.array([1])        # AR coefficient\n",
+        "ma2 = np.array([1, 0.8])   # MA coefficient\n",
+        "ma1_process = ArmaProcess(ar2, ma2).generate_sample(nsample=100)\n",
+        "ma1_acf = sm.tsa.acf(ma1_process, nlags=20)\n",
+        "\n",
+        "# Generating non-stationary series with slow decay in ACF\n",
+        "non_stat_process = np.cumsum(np.random.randn(100))  # Random walk process\n",
+        "non_stat_acf = sm.tsa.acf(non_stat_process, nlags=20)"
+      ],
+      "id": "30c2e55b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-fold: true\n",
+        "\n",
+        "import plotly.graph_objects as go\n",
+        "\n",
+        "# Creating the ACF plots using Plotly\n",
+        "\n",
+        "# Plot for AR(1) process\n",
+        "fig = go.Figure()\n",
+        "fig.add_trace(go.Scatter(x=list(range(21)), y=ar1_acf, mode='markers+lines', name='AR(1)'))\n",
+        "fig.update_layout(title='ACF of AR(1) Process (Exponential Decay)',\n",
+        "                  xaxis_title='Lag',\n",
+        "                  yaxis_title='ACF')\n",
+        "\n",
+        "# Plot for MA(1) process\n",
+        "fig.add_trace(go.Scatter(x=list(range(21)), y=ma1_acf, mode='markers+lines', name='MA(1)'))\n",
+        "fig.update_layout(title='ACF of MA(1) Process (Significant Spike then Rapid Decay)',\n",
+        "                  xaxis_title='Lag',\n",
+        "                  yaxis_title='ACF')\n",
+        "\n",
+        "# Plot for non-stationary process\n",
+        "fig.add_trace(go.Scatter(x=list(range(21)), y=non_stat_acf, mode='markers+lines', name='Non-Stationary'))\n",
+        "fig.update_layout(title='ACF Comparison for AR(1), MA(1), and Non-Stationary Processes',\n",
+        "                  xaxis_title='Lag',\n",
+        "                  yaxis_title='ACF',\n",
+        "                  height=400, # You can set this to any number of pixels you prefer\n",
+        "                  legend_title='Process Type',\n",
+        "                  template='plotly_white')\n",
+        "\n",
+        "fig.show()"
+      ],
+      "id": "15d507f6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Calculating Autocorrelation in Python\n",
+        "\n",
+        "In Python, we can calculate autocorrelation using the [`acf` function](https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.acf.html) from the `statsmodels` package. The autocorrelation function (ACF) calculates the correlation of a time series with its lagged values, providing a guide to the structure of dependencies within the data.\n",
+        "\n",
+        "\n",
+        "```python\n",
+        "from statsmodels.tsa.stattools import acf\n",
+        "\n",
+        "n_lags = 12 # we choose number of periods to consider\n",
+        "\n",
+        "acf_results = acf(time_series, nlags=n_lags, fft=False)\n",
+        "print(type(acf_results)) #> np.ndarray\n",
+        "print(len(acf_results)) #> 13\n",
+        "```\n",
+        "\n",
+        ":::{.callout-note }\n",
+        "When we obtain results from the autocorrelation function, we get one plus the number of lagging periods we chose. The first value represents a datapoint's correlation with itself, and is always equal to 1.\n",
+        ":::\n",
+        "\n",
+        "## Examples of Autocorrelation\n",
+        "\n",
+        "Let's conduct autocorrelation analysis on two example datasets, to illustrate the concepts and techniques.\n",
+        "\n",
+        ":::{.callout-note title=\"Data Source\"}\n",
+        "These datasets and examples of autocorrelation are based on material by Prof. Ram Yamarthy.\n",
+        ":::\n",
+        "\n",
+        "### Example 1: Random Data\n",
+        "\n",
+        "In this first example, we will use a randomly generated series of data, where there is no relationship between each value and its previous values.\n",
+        "\n",
+        "#### Data Simulation\n",
+        "\n",
+        "Here we are generating a random distribution of numbers using the [`random.normal` function](https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html) from `numpy`:\n"
+      ],
+      "id": "5b149cb9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "\n",
+        "y_rand = np.random.normal(loc=0, scale=1, size=1000) # mean, std, n_samples\n",
+        "print(type(y_rand))\n",
+        "print(y_rand.shape)\n",
+        "print(y_rand[0:25].round(3))"
+      ],
+      "id": "4e6183d7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Data Exploration\n",
+        "\n",
+        "We plot the data to show although it is normally distributed, in terms of the sequence from one datapoint to another, it represents some random noise:\n"
+      ],
+      "id": "4169b9b2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#import plotly.express as px\n",
+        "#\n",
+        "#px.histogram(y_rand, height=350, title=\"Random Numbers (Normal Distribution)\")"
+      ],
+      "id": "91d015ec",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.scatter(y_rand, height=350, title=\"Random Numbers (Normal Distribution)\")"
+      ],
+      "id": "d4a773fe",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Calculating Autocorrelation\n",
+        "\n",
+        "We use the `acf` function from `statsmodels` to calculate autocorrelation, passing the data series in as the first parameter:\n"
+      ],
+      "id": "fb919853"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from statsmodels.tsa.stattools import acf\n",
+        "\n",
+        "n_lags = 10 # we choose number of periods to consider\n",
+        "\n",
+        "acf_rand = acf(y_rand, nlags=n_lags, fft=False)\n",
+        "print(type(acf_rand))\n",
+        "print(len(acf_rand))\n",
+        "print(list(acf_rand.round(3)))"
+      ],
+      "id": "c4dda8ed",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Finally, we plot the autocorrelation results to visually examine the autocorrelation structure of the data:\n"
+      ],
+      "id": "82dfc617"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(y=acf_rand, markers=[\"o\"], height=350,\n",
+        "        title=\"Autocorrelation of a series of random numbers\",\n",
+        "        labels={\"x\": \"Number of Lags\", \"y\":\"Autocorrelation\"}\n",
+        ")"
+      ],
+      "id": "f69a327a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We see, for this randomly generated dataset, although the the current value is perfectly correlated with itself (as expected), it has no correlation with the previous values.\n",
+        "\n",
+        "### Example 2: Baseball Team Performance\n",
+        "\n",
+        "Alright, so we have seen an example where there is weak autocorrelation. But let's take a look at another example where there is some moderately strong autocorrelation between current and past values. We will use a dataset of baseball team performance, where there may be some correlation between a team's current performance and its recent past performance.\n"
+      ],
+      "id": "11c6fe59"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "\n",
+        "#import warnings\n",
+        "#warnings.simplefilter(action='ignore', category=FutureWarning)\n",
+        "\n",
+        "from pandas import set_option\n",
+        "set_option('display.max_rows', 6)"
+      ],
+      "id": "15f9f323",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Data Loading\n",
+        "\n",
+        "Here we are loading a dataset of baseball team statistics, for four different baseball teams:\n"
+      ],
+      "id": "e281c48f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import read_excel\n",
+        "\n",
+        "repo_url = f\"https://github.com/prof-rossetti/python-for-finance\"\n",
+        "file_url = f\"{repo_url}/raw/refs/heads/main/docs/data/baseball_data.xlsx\"\n",
+        "\n",
+        "teams = [\n",
+        "    {\"abbrev\": \"NYY\", \"sheet_name\": \"ny_yankees\"  , \"color\": \"#1f77b4\"},\n",
+        "    {\"abbrev\": \"BOS\", \"sheet_name\": \"bo_redsox\"   , \"color\": \"#d62728\"},\n",
+        "    {\"abbrev\": \"BAL\", \"sheet_name\": \"balt_orioles\", \"color\": \"#ff7f0e\"},\n",
+        "    {\"abbrev\": \"TOR\", \"sheet_name\": \"tor_blujays\" , \"color\": \"#17becf\"},\n",
+        "]\n",
+        "for team in teams:\n",
+        "\n",
+        "    # read dataset from file:\n",
+        "    team_df = read_excel(file_url, sheet_name=team[\"sheet_name\"])\n",
+        "    team_df.index = team_df[\"Year\"]\n",
+        "\n",
+        "    print(\"----------------\")\n",
+        "    print(team[\"abbrev\"])\n",
+        "    print(len(team_df), \"years from\", team_df.index.min(),\n",
+        "                                \"to\", team_df.index.max())\n",
+        "    print(team_df.columns.tolist())\n",
+        "\n",
+        "    # store in teams dictionary for later:\n",
+        "    team[\"df\"] = team_df"
+      ],
+      "id": "062029a3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "For each team, we have with a dataset of their annual statistics. We see there are a different number of rows for each of the teams, depending on what year they were established.\n",
+        "\n",
+        "\n",
+        "Merging the dataset will make it easier for us to chart this data, especially when we only care about analyzing annual performance (win-loss percentage):\n"
+      ],
+      "id": "2f41f28e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import DataFrame\n",
+        "\n",
+        "df = DataFrame()\n",
+        "for team in teams:\n",
+        "    # store that team's win-loss pct in a new column:\n",
+        "    df[team[\"abbrev\"]] = team[\"df\"][\"W-L%\"]\n",
+        "\n",
+        "df"
+      ],
+      "id": "909e446f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Here we are creating a single dataset representing the annual performance (win-loss percentage) for each team.\n",
+        "\n",
+        "#### Data Exploration\n",
+        "\n",
+        "We can continue exploring the data by plotting the performance of each team over time:\n"
+      ],
+      "id": "9232e038"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "team_colors_map = {team['abbrev']: team['color'] for team in teams}\n",
+        "\n",
+        "px.line(df, y=[\"NYY\", \"BOS\", \"BAL\", \"TOR\"], height=450,\n",
+        "    title=\"Baseball Team Annual Win Percentages\",\n",
+        "    labels={\"value\": \"Win Percentage\", \"variable\": \"Team\"},\n",
+        "    color_discrete_map=team_colors_map\n",
+        ")"
+      ],
+      "id": "c9779bb3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-tip title=\"Interactive dataviz\"}\n",
+        "Click a team name in the legend to toggle that series on or off.\n",
+        ":::\n",
+        "\n",
+        "Calculating moving averages helps us arrive at a smoother trend of each team's performance over time:\n"
+      ],
+      "id": "5c4cc1b5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "window = 20\n",
+        "\n",
+        "ma_df = DataFrame()\n",
+        "for team_name in df.columns:\n",
+        "    # calculate moving average:\n",
+        "    moving_avg = df[team_name].rolling(window=window).mean()\n",
+        "    # store results in new column:\n",
+        "    ma_df[team_name] = moving_avg"
+      ],
+      "id": "f6694c78",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(ma_df, y=ma_df.columns.tolist(), height=450,\n",
+        "        title=f\"Baseball Team Win Percentages ({window} Year Moving Avg)\",\n",
+        "        labels={\"value\": \"Win Percentage\", \"variable\": \"Team\"},\n",
+        "        color_discrete_map=team_colors_map\n",
+        ")"
+      ],
+      "id": "04ecd80a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Aggregating the data gives us a measure of which teams do better on average:\n"
+      ],
+      "id": "8f80ce59"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "means = df.mean(axis=0).round(3) # get the mean value for each column\n",
+        "means.name = \"Average Performance\"\n",
+        "means.sort_values(ascending=True, inplace=True)\n",
+        "\n",
+        "px.bar(y=means.index, x=means.values, orientation=\"h\", height=350,\n",
+        "        title=f\"Average Win Percentage ({df.index.min()} to {df.index.max()})\",\n",
+        "        labels={\"x\": \"Win Percentage\", \"y\": \"Team\"},\n",
+        "        color=means.index, color_discrete_map=team_colors_map\n",
+        ")"
+      ],
+      "id": "51af111f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Here we see New York has the best performance, while Baltimore has the worst performance, on average.\n",
+        "\n",
+        "\n",
+        "\n",
+        "#### Calculating Autocorrelation\n",
+        "\n",
+        "OK, sure we can analyze which teams do better on average, and how well each team performs over time, but with autocorrelation analysis, we are interested in how consistent current results are with past results.\n",
+        "\n",
+        "Calculating autocorrelation of each team's performance, using ten lagging periods for each team:\n"
+      ],
+      "id": "41267b5b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from statsmodels.tsa.stattools import acf\n",
+        "\n",
+        "n_lags = 10\n",
+        "\n",
+        "acf_df = DataFrame()\n",
+        "for team_name in df.columns:\n",
+        "    # calculate autocorrelation:\n",
+        "    acf_results = acf(df[team_name], nlags=n_lags, fft=True, missing=\"drop\")\n",
+        "    # store results in new column:\n",
+        "    acf_df[team_name] = acf_results\n",
+        "\n",
+        "acf_df.T.round(3)"
+      ],
+      "id": "de6d5a49",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The autocorrelation results help us understand the consistency in performance of each team from year to year.\n",
+        "\n",
+        ":::{.callout-tip title=\"FYI\"}\n",
+        "When computing autocorrelation using the `acf` function, the calculation considers all values in the dataset, not just the last 10 values. The 10 lagging periods mean that the autocorrelation is computed for each observation in the dataset, looking back 10 periods for each observation.\n",
+        ":::\n",
+        "\n",
+        "Plotting the autocorrelation results helps us compare the results for each team:\n"
+      ],
+      "id": "53f42beb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.line(acf_df, y=[\"NYY\", \"BOS\", \"BAL\", \"TOR\"], markers=\"O\", height=450,\n",
+        "        title=\"Auto-correlation of Annual Baseball Team Performance\",\n",
+        "        labels={\"variable\": \"Team\", \"value\": \"Autocorrelation\",\n",
+        "                \"index\": \"Number of lags\"\n",
+        "        },\n",
+        "        color_discrete_map=team_colors_map\n",
+        ")"
+      ],
+      "id": "2d58302c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We see at lagging period zero, each team's current performance is perfectly correlated with itself. But at lagging period one, the autocorrelation for each team starts to drop off to around 60%. This means for each team, their performance in a given year will be around 60% correlated with the previous year.\n",
+        "\n",
+        "The autocorrelation for each team continues to drop off at different rates over additional lagging periods. Examining the final autocorrelation value helps us understand, given a team's current performance, how consistent it was over the previous ten years.\n",
+        "\n",
+        "Which team is the most consistent in their performance over a ten year period?"
+      ],
+      "id": "5b2c3848"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
