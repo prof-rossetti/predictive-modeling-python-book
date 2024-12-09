@@ -1,2 +1,311 @@
+---
+#format:
+#  html:
+#    code-fold: false
+jupyter: python3
+execute:
+  cache: true # re-render only when source changes
+---
 
 # Binary Classification
+
+## Data Loading
+
+To illustrate binary classification, we'll use an ["Occupancy Detection" dataset](https://archive.ics.uci.edu/dataset/357/occupancy+detection) dataset.
+
+:::{.callout-tip title="Data Source"}
+"Experimental data used for binary classification (room occupancy) from Temperature, Humidity, Light and CO2. Ground-truth occupancy was obtained from time stamped pictures that were taken every minute."
+:::
+
+```{python}
+from ucimlrepo import fetch_ucirepo
+
+ds = fetch_ucirepo(id=357)
+```
+
+```{python}
+ds.variables
+```
+
+```{python}
+df = ds["data"]["original"].copy()
+df.rename(columns={"date": "Date", "Occupancy": "Occupied"}, inplace=True)
+df.drop(columns=["id"], inplace=True)
+df.head()
+```
+
+Dropping null values:
+
+```{python}
+print(len(df))
+df.dropna(inplace=True)
+print(len(df))
+```
+
+```{python}
+from pandas import to_numeric
+
+# clean datatypes / convert to numeric datatypes:
+numeric_features = ["Temperature", "Humidity", "Light", "CO2", "HumidityRatio"]
+df[numeric_features] = df[numeric_features].apply(to_numeric)
+
+df.head()
+```
+
+
+
+## Data Exploration
+
+### Distribution of the Target
+
+```{python}
+target = "Occupied"
+#df[target] = df[target].map({0: False, 1: True})
+```
+
+```{python}
+df[target].value_counts()
+```
+
+
+```{python}
+import plotly.express as px
+
+px.histogram(df, x=target, nbins=5, height=350,
+             title="Distribution of Occupancy"
+            )
+```
+
+### Relationships
+
+```{python}
+#px.scatter(df, x="Light", y=target, height=350,
+#           trendline="ols", trendline_color_override="red"
+#)
+```
+
+```{python}
+px.histogram(df, x="Light", nbins=7, height=350,
+             facet_col=target, color=target
+            )
+```
+
+```{python}
+px.histogram(df, x="Temperature", nbins=7, height=350,
+             facet_col=target, #facet_col_wrap=2
+             color=target
+            )
+```
+
+### Correlation
+
+
+
+```{python}
+#|code-show: false
+
+import plotly.express as px
+
+def plot_correlation_matrix(df, method="pearson", height=450):
+    """Params: method (str): "spearman" or "pearson". """
+
+    cor_mat = df.corr(method=method, numeric_only=True)
+
+    title= f"{method.title()} Correlation"
+
+    fig = px.imshow(cor_mat,
+                    height=height, # title=title,
+                    text_auto= ".2f", # round to two decimal places
+                    color_continuous_scale="Blues",
+                    color_continuous_midpoint=0,
+                    labels={"x": "Variable", "y": "Variable"},
+    )
+    # center title (h/t: https://stackoverflow.com/questions/64571789/)
+    fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})
+    fig.show()
+
+```
+
+```{python}
+
+# df.drop(columns=["Hour", "Minute"])
+plot_correlation_matrix(df, method="spearman", height=450)
+```
+
+Humidity and humidity ratio are the most highly correlated features. We can consider dropping one due to collinearity concerns.
+
+```{python}
+corr_target = df.corr(numeric_only=True)[target].sort_values(ascending=False)
+corr_target
+```
+
+## X/Y Split
+
+```{python}
+df.columns.tolist()
+```
+
+```{python}
+target = "Occupied"
+y = df[target].copy()
+
+x = df.drop(columns=[target, "Date"]).copy() #, "Timestamp", "Date"
+print("X:", x.shape)
+print("Y:", y.shape)
+```
+
+## Feature Scaling
+
+```{python}
+x_scaled = (x - x.mean(axis=0)) / x.std(axis=0)
+x_scaled.describe().T[["mean", "std"]]
+```
+
+## Train Test Split
+
+```{python}
+from sklearn.model_selection import train_test_split
+
+x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, random_state=99)
+print("TRAIN:", x_train.shape, y_train.shape)
+print("TEST:", x_test.shape, y_test.shape)
+```
+
+## Model Training
+
+```{python}
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression(random_state=99)
+model.fit(x_train, y_train)
+```
+
+Examining coefficients:
+
+```{python}
+from pandas import Series
+
+coef = Series(model.coef_[0], index=x_train.columns)
+coef.sort_values(ascending=False)
+```
+
+## Model Evaluation
+
+```{python}
+y_pred = model.predict(x_test)
+```
+
+```{python}
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, y_pred))
+```
+
+```{python}
+from sklearn.metrics import roc_auc_score
+
+print("ROC-AUC:", roc_auc_score(y_test, y_pred).round(3))
+```
+
+
+### Confusion Matrix
+
+```{python}
+#| code-fold: True
+
+from sklearn.metrics import confusion_matrix
+import plotly.express as px
+
+def plot_confusion_matrix(y_true, y_pred, height=450, showscale=False, title=None, subtitle=None):
+    # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html
+    # Confusion matrix whose i-th row and j-th column
+    # ... indicates the number of samples with
+    # ... true label being i-th class (ROW)
+    # ... and predicted label being j-th class (COLUMN)
+    cm = confusion_matrix(y_true, y_pred)
+
+    class_names = sorted(y_test.unique().tolist())
+
+    cm = confusion_matrix(y_test, y_pred, labels=class_names)
+
+    title = title or "Confusion Matrix"
+    #if subtitle:
+    #    title += f"<br><sup>{subtitle}</sup>"
+
+    fig = px.imshow(cm, x=class_names, y=class_names, height=height,
+                    labels={"x": "Predicted", "y": "Actual"},
+                    color_continuous_scale="Blues", text_auto=True,
+    )
+    fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})
+    fig.update_coloraxes(showscale=showscale)
+
+    fig.show()
+
+```
+
+
+```{python}
+plot_confusion_matrix(y_test, y_pred, height=400)
+```
+
+
+## Complexity vs Performance
+
+```{python}
+#| code-fold: True
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from pandas import Series
+
+def train_eval_logistic(df, target="Occupied", features=[]):
+    if not any(features):
+        features = df.drop(columns=[target]).columns.tolist()
+    print("FEATURES:", features)
+
+    x = df[features].copy()
+    print("X:", x.shape)
+
+    y = df[target].copy()
+    print("Y:", y.shape)
+
+    # SCALING:
+    x_scaled = (x - x.mean(axis=0)) / x.std(axis=0)
+
+    # TRAIN / TEST SPLIT:
+    x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, random_state=99)
+    # MODEL TRAINING:
+    model = LogisticRegression(random_state=99)
+    model.fit(x_train, y_train)
+
+    #print("COEFS:")
+    #coef = Series(model.coef_[0], index=x_train.columns)
+    #print(coef.sort_values(ascending=False))
+
+    # PREDS AND EVAL:
+    y_pred = model.predict(x_test)
+
+    print(classification_report(y_test, y_pred))
+
+
+```
+
+```{python}
+train_eval_logistic(df, features=numeric_features)
+```
+
+```{python}
+train_eval_logistic(df, features=["Light"])
+```
+
+```{python}
+train_eval_logistic(df, features=["Temperature"])
+```
+
+```{python}
+train_eval_logistic(df, features=["CO2"])
+```
+
+```{python}
+train_eval_logistic(df, features=["Temperature","CO2"])
+```
