@@ -10,9 +10,9 @@ Let's discuss key concepts related to generalization, including the trade-off be
 
 In the context of generalization, bias and variance represent two types of errors that can affect a model's performance.
 
-**Bias** refers to errors introduced by overly simplistic models that fail to capture the underlying patterns in the data. A high-bias model makes strong assumptions about the data, resulting in consistently poor predictions on both the training and test sets[@google_ml_overfitting].
+**Bias** refers to errors introduced by overly simplistic models that fail to capture the underlying patterns in the data. A high-bias model makes strong assumptions about the data, resulting in consistently poor predictions on both the training and test sets.
 
-On the other hand, **variance** refers to errors caused by overly complex models that fit the training data too closely, capturing noise along with the signal. This leads the model to perform well on the training data, but poorly on unseen test data[@scikit_learn_underfitting_overfitting].
+On the other hand, **variance** refers to errors caused by overly complex models that fit the training data too closely, capturing noise along with the signal. This leads the model to perform well on the training data, but poorly on unseen test data.
 
 ![Illustration of bias vs variance, using a bull's eye. Source: [Gudivada 2017 Data](https://www.researchgate.net/publication/318432363_Data_Quality_Considerations_for_Big_Data_and_Machine_Learning_Going_Beyond_Data_Cleaning_and_Transformations).](./../../images/bias-variance-tradeoff.png)
 
@@ -26,7 +26,7 @@ Using an analogy of darts on a bull's eye, low bias means the predictions are ac
 
 ### Overfitting
 
-**Overfitting** occurs when a model is too complex and learns not only the underlying patterns but also the noise and random fluctuations in the training data[@google_ml_overfitting]. An overfitted model performs very well on the training data but fails to generalize to unseen data. This results in poor performance on the test set, as the model struggles to adapt to new inputs that do not perfectly match the training data.
+**Overfitting** occurs when a model is too complex and learns not only the underlying patterns but also the noise and random fluctuations in the training data. An overfitted model performs very well on the training data but fails to generalize to unseen data[@google_ml_overfitting]. This results in poor performance on the test set, as the model struggles to adapt to new inputs that do not perfectly match the training data.
 
 In technical terms, overfitting happens when a model has low bias but high variance. The model fits the training data very closely, but any small changes in input data lead to significant variations in the output predictions.
 
