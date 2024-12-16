@@ -164,7 +164,7 @@
         "\n",
         "Here is a helper function for visualizing the results of a confusion matrix, using a color-coded heatmap:\n"
       ],
-      "id": "130c5876"
+      "id": "3088fbec"
     },
     {
       "cell_type": "code",
@@ -200,7 +200,7 @@
         "\n",
         "    fig.show()\n"
       ],
-      "id": "42541ac5",
+      "id": "cfdfadea",
       "execution_count": null,
       "outputs": []
     },
@@ -240,7 +240,7 @@
         "\n",
         "```"
       ],
-      "id": "f1e73e19"
+      "id": "322ed3d6"
     }
   ],
   "metadata": {

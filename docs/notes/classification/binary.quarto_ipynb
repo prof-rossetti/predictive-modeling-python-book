@@ -1,0 +1,584 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "#format:\n",
+        "#  html:\n",
+        "#    code-fold: false\n",
+        "jupyter: python3\n",
+        "execute:\n",
+        "  cache: true # re-render only when source changes\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Binary Classification\n",
+        "\n",
+        "## Data Loading\n",
+        "\n",
+        "To illustrate binary classification, we'll use an [\"Occupancy Detection\" dataset](https://archive.ics.uci.edu/dataset/357/occupancy+detection) dataset.\n",
+        "\n",
+        ":::{.callout-tip title=\"Data Source\"}\n",
+        "\"Experimental data used for binary classification (room occupancy) from Temperature, Humidity, Light and CO2. Ground-truth occupancy was obtained from time stamped pictures that were taken every minute.\"\n",
+        ":::\n"
+      ],
+      "id": "3dce0ff9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from ucimlrepo import fetch_ucirepo\n",
+        "\n",
+        "ds = fetch_ucirepo(id=357)"
+      ],
+      "id": "0bc6e774",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "ds.variables"
+      ],
+      "id": "c4bdac79",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df = ds[\"data\"][\"original\"].copy()\n",
+        "df.rename(columns={\"date\": \"Date\", \"Occupancy\": \"Occupied\"}, inplace=True)\n",
+        "df.drop(columns=[\"id\"], inplace=True)\n",
+        "df.head()"
+      ],
+      "id": "0bb7647d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Dropping null values:\n"
+      ],
+      "id": "472084d3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(len(df))\n",
+        "df.dropna(inplace=True)\n",
+        "print(len(df))"
+      ],
+      "id": "103559f5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import to_numeric\n",
+        "\n",
+        "# clean datatypes / convert to numeric datatypes:\n",
+        "numeric_features = [\"Temperature\", \"Humidity\", \"Light\", \"CO2\", \"HumidityRatio\"]\n",
+        "df[numeric_features] = df[numeric_features].apply(to_numeric)\n",
+        "\n",
+        "df.head()"
+      ],
+      "id": "a320b582",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Data Exploration\n",
+        "\n",
+        "### Distribution of the Target\n"
+      ],
+      "id": "6195e5e3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "target = \"Occupied\"\n",
+        "#df[target] = df[target].map({0: False, 1: True})"
+      ],
+      "id": "74918fba",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df[target].value_counts()"
+      ],
+      "id": "b9033f48",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "px.histogram(df, x=target, nbins=5, height=350,\n",
+        "             title=\"Distribution of Occupancy\"\n",
+        "            )"
+      ],
+      "id": "198af21f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Relationships\n"
+      ],
+      "id": "be95b309"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#px.scatter(df, x=\"Light\", y=target, height=350,\n",
+        "#           trendline=\"ols\", trendline_color_override=\"red\"\n",
+        "#)"
+      ],
+      "id": "ece27dae",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.histogram(df, x=\"Light\", nbins=7, height=350,\n",
+        "             facet_col=target, color=target\n",
+        "            )"
+      ],
+      "id": "c43b495e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "px.histogram(df, x=\"Temperature\", nbins=7, height=350,\n",
+        "             facet_col=target, #facet_col_wrap=2\n",
+        "             color=target\n",
+        "            )"
+      ],
+      "id": "43b09b55",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Correlation\n"
+      ],
+      "id": "cac24bf2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "code-show": false
+      },
+      "source": [
+        "import plotly.express as px\n",
+        "\n",
+        "def plot_correlation_matrix(df, method=\"pearson\", height=450):\n",
+        "    \"\"\"Params: method (str): \"spearman\" or \"pearson\". \"\"\"\n",
+        "\n",
+        "    cor_mat = df.corr(method=method, numeric_only=True)\n",
+        "\n",
+        "    title= f\"{method.title()} Correlation\"\n",
+        "\n",
+        "    fig = px.imshow(cor_mat,\n",
+        "                    height=height, # title=title,\n",
+        "                    text_auto= \".2f\", # round to two decimal places\n",
+        "                    color_continuous_scale=\"Blues\",\n",
+        "                    color_continuous_midpoint=0,\n",
+        "                    labels={\"x\": \"Variable\", \"y\": \"Variable\"},\n",
+        "    )\n",
+        "    # center title (h/t: https://stackoverflow.com/questions/64571789/)\n",
+        "    fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})\n",
+        "    fig.show()"
+      ],
+      "id": "fd4d2a19",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# df.drop(columns=[\"Hour\", \"Minute\"])\n",
+        "plot_correlation_matrix(df, method=\"spearman\", height=450)"
+      ],
+      "id": "2b7e2643",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Humidity and humidity ratio are the most highly correlated features. We can consider dropping one due to collinearity concerns.\n"
+      ],
+      "id": "6974fa02"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "corr_target = df.corr(numeric_only=True)[target].sort_values(ascending=False)\n",
+        "corr_target"
+      ],
+      "id": "c7f984c7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## X/Y Split\n"
+      ],
+      "id": "bdd57154"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.columns.tolist()"
+      ],
+      "id": "f42eed11",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "target = \"Occupied\"\n",
+        "y = df[target].copy()\n",
+        "\n",
+        "x = df.drop(columns=[target, \"Date\"]).copy() #, \"Timestamp\", \"Date\"\n",
+        "print(\"X:\", x.shape)\n",
+        "print(\"Y:\", y.shape)"
+      ],
+      "id": "1c0fd6b4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Feature Scaling\n"
+      ],
+      "id": "7692b4c7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x_scaled = (x - x.mean(axis=0)) / x.std(axis=0)\n",
+        "x_scaled.describe().T[[\"mean\", \"std\"]]"
+      ],
+      "id": "d787d68b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Train Test Split\n"
+      ],
+      "id": "ba61e5c3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.model_selection import train_test_split\n",
+        "\n",
+        "x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, random_state=99)\n",
+        "print(\"TRAIN:\", x_train.shape, y_train.shape)\n",
+        "print(\"TEST:\", x_test.shape, y_test.shape)"
+      ],
+      "id": "52923445",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Model Training\n"
+      ],
+      "id": "cd28d414"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.linear_model import LogisticRegression\n",
+        "\n",
+        "model = LogisticRegression(random_state=99)\n",
+        "model.fit(x_train, y_train)"
+      ],
+      "id": "f254fbaa",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Examining coefficients:\n"
+      ],
+      "id": "fa68ec7f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas import Series\n",
+        "\n",
+        "coef = Series(model.coef_[0], index=x_train.columns)\n",
+        "coef.sort_values(ascending=False)"
+      ],
+      "id": "e22c3fc8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Model Evaluation\n"
+      ],
+      "id": "efa170b9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y_pred = model.predict(x_test)"
+      ],
+      "id": "53369943",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import classification_report\n",
+        "\n",
+        "print(classification_report(y_test, y_pred))"
+      ],
+      "id": "20b521b8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.metrics import roc_auc_score\n",
+        "\n",
+        "print(\"ROC-AUC:\", roc_auc_score(y_test, y_pred).round(3))"
+      ],
+      "id": "a4fedac7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Confusion Matrix\n"
+      ],
+      "id": "44889f6a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-fold: True\n",
+        "\n",
+        "from sklearn.metrics import confusion_matrix\n",
+        "import plotly.express as px\n",
+        "\n",
+        "def plot_confusion_matrix(y_true, y_pred, height=450, showscale=False, title=None, subtitle=None):\n",
+        "    # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html\n",
+        "    # Confusion matrix whose i-th row and j-th column\n",
+        "    # ... indicates the number of samples with\n",
+        "    # ... true label being i-th class (ROW)\n",
+        "    # ... and predicted label being j-th class (COLUMN)\n",
+        "    cm = confusion_matrix(y_true, y_pred)\n",
+        "\n",
+        "    class_names = sorted(y_test.unique().tolist())\n",
+        "\n",
+        "    cm = confusion_matrix(y_test, y_pred, labels=class_names)\n",
+        "\n",
+        "    title = title or \"Confusion Matrix\"\n",
+        "    #if subtitle:\n",
+        "    #    title += f\"<br><sup>{subtitle}</sup>\"\n",
+        "\n",
+        "    fig = px.imshow(cm, x=class_names, y=class_names, height=height,\n",
+        "                    labels={\"x\": \"Predicted\", \"y\": \"Actual\"},\n",
+        "                    color_continuous_scale=\"Blues\", text_auto=True,\n",
+        "    )\n",
+        "    fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})\n",
+        "    fig.update_coloraxes(showscale=showscale)\n",
+        "\n",
+        "    fig.show()"
+      ],
+      "id": "4e7c4f56",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plot_confusion_matrix(y_test, y_pred, height=400)"
+      ],
+      "id": "0b2fa07c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Complexity vs Performance\n"
+      ],
+      "id": "881ec879"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| code-fold: True\n",
+        "\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.linear_model import LogisticRegression\n",
+        "from pandas import Series\n",
+        "\n",
+        "def train_eval_logistic(df, target=\"Occupied\", features=[]):\n",
+        "    if not any(features):\n",
+        "        features = df.drop(columns=[target]).columns.tolist()\n",
+        "    print(\"FEATURES:\", features)\n",
+        "\n",
+        "    x = df[features].copy()\n",
+        "    print(\"X:\", x.shape)\n",
+        "\n",
+        "    y = df[target].copy()\n",
+        "    print(\"Y:\", y.shape)\n",
+        "\n",
+        "    # SCALING:\n",
+        "    x_scaled = (x - x.mean(axis=0)) / x.std(axis=0)\n",
+        "\n",
+        "    # TRAIN / TEST SPLIT:\n",
+        "    x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, random_state=99)\n",
+        "    # MODEL TRAINING:\n",
+        "    model = LogisticRegression(random_state=99)\n",
+        "    model.fit(x_train, y_train)\n",
+        "\n",
+        "    #print(\"COEFS:\")\n",
+        "    #coef = Series(model.coef_[0], index=x_train.columns)\n",
+        "    #print(coef.sort_values(ascending=False))\n",
+        "\n",
+        "    # PREDS AND EVAL:\n",
+        "    y_pred = model.predict(x_test)\n",
+        "\n",
+        "    print(classification_report(y_test, y_pred))\n"
+      ],
+      "id": "c4d866c4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval_logistic(df, features=numeric_features)"
+      ],
+      "id": "755bbc92",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval_logistic(df, features=[\"Light\"])"
+      ],
+      "id": "816407fb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval_logistic(df, features=[\"Temperature\"])"
+      ],
+      "id": "0d97f624",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval_logistic(df, features=[\"CO2\"])"
+      ],
+      "id": "5714a32e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "train_eval_logistic(df, features=[\"Temperature\",\"CO2\"])"
+      ],
+      "id": "0be13510",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

@@ -14,10 +14,10 @@ Stationarity ensures that the underlying process generating the data remains sta
 
 ## Types of Stationarity
 
-There are different types of stationarity, including:
+There are different types of stationarity, including[@shumway_stoffer_time_series]:
 
 1. **Strict Stationarity**: The distribution of the time series does not change over time. This is quite strict, and rarely occurs in real-world data.
-2. **Weak Stationarity (or Second-Order Stationarity)**: This is the most common type and only requires the mean, variance, and autocorrelation to be constant over time[@shumway_stoffer_time_series].
+2. **Weak Stationarity (or Second-Order Stationarity)**: This is the most common type and only requires the mean, variance, and autocorrelation to be constant over time.
 
 
 
@@ -26,11 +26,11 @@ There are different types of stationarity, including:
 
 ## Why Does Stationarity Matter?
 
-In time series analysis, stationarity is a key assumption that greatly influences our choice of which models to use.
+In time series analysis, stationarity is a key assumption that greatly influences our choice of which models to use[@hyndman_forecasting].
 
-  + For **Linear Regression** models: while linear regression does not explicitly require stationarity in the data, regression models generally work better with stationary data, particularly if the relationship between the features and the target is assumed to be stable over time. (As noted by Hyndman and Athanasopoulos [@hyndman_forecasting], understanding the underlying statistical properties of your time series is crucial for building reliable predictive models.)
+  + For **Linear Regression** models: while linear regression does not explicitly require stationarity in the data, regression models generally work better with stationary data, particularly if the relationship between the features and the target is assumed to be stable over time. 
 
-  + For **ARIMA (Autoregressive Integrated Moving Average)** models: ARIMA models require the data to be stationary. If the time series is not stationary, the model's assumptions break down, and it will not perform well[@science_direct_arima_garch]. The "Integrated (I)" part specifically deals with non-stationarity by differencing the data (i.e. subtracting the previous observation from the current one) to make it stationary.
+  + For **ARIMA (Autoregressive Integrated Moving Average)** models: ARIMA models require the data to be stationary. If the time series is not stationary, the model's assumptions break down, and it will not perform well. The "Integrated (I)" part specifically deals with non-stationarity by differencing the data (i.e. subtracting the previous observation from the current one) to make it stationary.
 
 ## Testing for Stationarity
 
@@ -67,7 +67,7 @@ rolling_std = time_series.rolling(window=12).std()
 
 ### Transformations to Achieve Stationarity
 
-If your data is non-stationary, here are a few common techniques to make it stationary:
+If your data is non-stationary, here are a few common techniques to make it stationary[@science_direct_arima_garch]:
 
 1. **Differencing**: Subtracting the previous value from the current value to remove trends.
 

@@ -1,19 +1,19 @@
 # Autocorrelation
 
-**Autocorrelation** is a statistical concept that measures the relationship between a variable's current value and its past values over successive time intervals[@ibm_autocorrelation].
+**Autocorrelation** is a statistical concept that measures the relationship between a variable's current value and its past values over successive time intervals[@investopedia_autocorrelation].
 
-In time series analysis, autocorrelation helps identify patterns and dependencies in data, particularly when dealing with sequences of observations over time, such as stock prices, temperature data, or sales figures[@adhikari_time_series_modeling]. Autocorrelation analysis is helpful for detecting trends, periodicities, and other temporal patterns in the data, as well as for developing predictive models.
+In time series analysis, autocorrelation helps identify patterns and dependencies in data, particularly when dealing with sequences of observations over time, such as stock prices, temperature data, or sales figures. Autocorrelation analysis is helpful for detecting trends, periodicities, and other temporal patterns in the data, as well as for developing predictive models.
 
-In predictive modeling, especially for time series forecasting, autocorrelation is essential for selecting the number of lagged observations (or lags) to use in autoregressive models. By calculating the autocorrelation for different lag intervals, it is possible to determine how much influence past values have on future ones. This process helps us choose the optimal lag length, which in turn can improve the accuracy of forecasts[@investopedia_autocorrelation].
+In predictive modeling, especially for time series forecasting, autocorrelation is essential for selecting the number of lagged observations (or lags) to use in autoregressive models[@ibm_autocorrelation]. By calculating the autocorrelation for different lag intervals, it is possible to determine how much influence past values have on future ones[@nau_arima_forecasting]. This process helps us choose the optimal lag length, which in turn can improve the accuracy of forecasts.
 
 
 ## Interpreting Autocorrelation
 
-Similar to correlation, autocorrelation will range in values from -1 to 1[@machine_learning_mastery_autocorrelation]. A positive autocorrelation indicates that a value tends to be similar to preceding values, while a negative autocorrelation suggests that a value is likely to differ from previous observations[@Smit1984].
+Similar to correlation, autocorrelation will range in values from -1 to 1. A positive autocorrelation indicates that a value tends to be similar to preceding values, while a negative autocorrelation suggests that a value is likely to differ from previous observations.
 
-  + **Strong Positive Autocorrelation**: A high positive autocorrelation at a particular lag (close to +1) indicates that past values strongly influence future values at that lag. This could mean that the series has a strong trend or persistent behavior, where high values are followed by high values and low values by low ones.
+  + **Strong Positive Autocorrelation**: A high positive autocorrelation at a particular lag (close to +1) indicates that past values strongly influence future values at that lag. This could mean that the series has a strong trend or persistent behavior, where high values are followed by high values and low values by low ones[@Smit1984].
 
-  + **Strong Negative Autocorrelation**: A strong negative autocorrelation (close to -1) suggests an oscillatory pattern, where high values tend to be followed by low values and vice versa.
+  + **Strong Negative Autocorrelation**: A strong negative autocorrelation (close to -1) suggests an oscillatory pattern, where high values tend to be followed by low values and vice versa[@Smit1984].
 
   + **Weak Autocorrelation**: If the ACF value is close to zero for a particular lag, it suggests that the time series does not exhibit a strong relationship with its past values at that lag. This can indicate that the observations at that lag are not predictive of future values[@sample_acf_ar1_properties].
 
@@ -22,7 +22,7 @@ In addition to interpreting the autocorrelation values themselves, we can examin
 
   + Exponential decay in the ACF indicates a stationary autoregressive process (AR model).
   + One or two significant spikes followed by rapid decay suggest a moving average process (MA model).
-  + Slow decay or oscillation often suggests non-stationarity, which may require differencing to stabilize the series[@nau_arima_forecasting].
+  + Slow decay or oscillation often suggests non-stationarity, which may require differencing to stabilize the series.
 
 
 ```{python}
@@ -89,7 +89,7 @@ fig.show()
 
 ## Calculating Autocorrelation in Python
 
-In Python, we can calculate autocorrelation using the [`acf` function](https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.acf.html) from the `statsmodels` package. The autocorrelation function (ACF) calculates the correlation of a time series with its lagged values, providing a guide to the structure of dependencies within the data.
+In Python, we can calculate autocorrelation using the [`acf` function](https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.acf.html) from the `statsmodels` package. The autocorrelation function (ACF) calculates the correlation of a time series with its lagged values, providing a guide to the structure of dependencies within the data[@adhikari_time_series_modeling].
 
 
 ```python
