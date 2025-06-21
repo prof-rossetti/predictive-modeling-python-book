@@ -12,6 +12,9 @@ preview:
 render:
 	quarto render docs/
 
+pdf:
+	quarto render docs/ --to pdf
+
 open:
 	open docs/_build/index.html
 
