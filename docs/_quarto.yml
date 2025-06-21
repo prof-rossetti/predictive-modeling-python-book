@@ -93,7 +93,7 @@ book:
           text: "Regression Overview"
 
         - href: notes/regression/linear.qmd
-          text: "Linear Regression w/ `sklearn`"
+          text: "Linear Regression"
 
         - href: notes/regression/ols.qmd
           text: "Linear Regression w/ `statsmodels`"
@@ -269,3 +269,21 @@ format:
   #  toc: true # include a table of contents
   #  toc-depth: 2 # control depth of table of contents
   #  embed-fonts: true # embed fonts in the DOCX
+
+
+  pdf:
+
+    # use XeLaTeX or LuaLaTeX so fontspec works:
+    latex-engine: xelatex
+
+    mainfont: "Source Sans 3" # "Merriweather"
+    sansfont: "Source Sans 3" # "Helvetica Neue"
+    monofont: "Menlo"
+    #fontsize: 11pt
+    #linestretch: 1.2
+
+    includes:
+      in-header: _pdf_styles.tex
+
+  #PrettyPDF-pdf:
+  #  keep-tex: true
