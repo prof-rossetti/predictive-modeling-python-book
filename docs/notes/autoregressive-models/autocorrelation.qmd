@@ -1,3 +1,9 @@
+---
+jupyter: python3
+execute:
+  cache: true # re-render only when source changes
+---
+
 # Autocorrelation
 
 **Autocorrelation** is a statistical concept that measures the relationship between a variable's current value and its past values over successive time intervals.

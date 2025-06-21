@@ -1,3 +1,9 @@
+---
+jupyter: python3
+execute:
+  cache: true # re-render only when source changes
+---
+
 # Classification
 
 **Classification** is a supervised learning task where the variable we are trying to predict is discrete, whether that is binary or categorical.

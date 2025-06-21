@@ -1,3 +1,9 @@
+---
+jupyter: python3
+execute:
+  cache: true # re-render only when source changes
+---
+
 # Regression for Seasonality Analysis
 
 We've explored using a regression for time series forecasting, but what if there are seasonal or cyclical patterns in the data?
