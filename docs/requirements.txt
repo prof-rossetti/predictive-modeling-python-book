@@ -19,8 +19,8 @@ openpyxl # for pandas.read_excel function
 #matplotlib
 seaborn
 plotly
-statsmodels # used by plotly for trendline parameter
-#scipy
+statsmodels==0.14.2 # used by plotly for trendline parameter
+#scipy==1.14.0
 scikit-learn==1.3.2 # match colab environment
 joblib
 

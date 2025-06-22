@@ -37,3 +37,8 @@ render-fresh-pdf:
 render-fresh-docx:
 	$(MAKE) clean
 	$(MAKE) docx
+
+
+convert:
+	quarto convert docs/notes/classification/_binary.qmd --output docs/notes/classification/binary.ipynb
+	quarto render  docs/notes/classification/binary.ipynb --execute
