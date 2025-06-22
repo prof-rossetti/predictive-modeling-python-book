@@ -68,7 +68,7 @@ jobs:
     # RENDER WEBSITE CONTENTS TO DOCS/_BUILD
     - name: Build the book
       run: |
-        quarto render docs/
+        quarto render docs/ --to html
 
     #
     # GITHUB PAGES STUFF
