@@ -1,11 +1,8 @@
+![](./images/predictive-modeling-book-banner-2025.png){fig-align="center" fig-alt="Predictive Modeling in Python (banner image)" height=400}
 
 # Welcome {.unnumbered}
 
-<!--
-![](./images/predictive-modeling-book-banner.png){fig-align="center" fig-alt="Predictive Modeling in Python (banner image)" height=400}
--->
-
-Welcome to the \"Predictive Modeling in Python\" book (2024 edition, online)!
+Welcome to the \"Predictive Modeling in Python\" book (2025 edition, online)!
 
 In an era where data-driven decision-making is essential, this book equips readers with the knowledge and practical skills needed to harness the power of predictive analytics.
 
