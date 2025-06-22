@@ -76,11 +76,11 @@ jobs:
 
     # UPLOAD CONTENTS OF DOCS/_BUILD
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v2
+      uses: actions/upload-pages-artifact@v3
       with:
         path: "docs/_build"
 
     # DEPLOY WEBSITE CONTENTS TO GITHUB PAGES
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v2
+      uses: actions/deploy-pages@v4
