@@ -222,9 +222,9 @@ format:
   html:
     # https://quarto.org/docs/output-formats/html-themes.html
     # https://bootswatch.com/
-    theme: pulse
-      #light: default #flatly
-      #dark: darkly
+    theme: # pulse
+      light: pulse # flatly # default #flatly
+      dark: cyborg # vapor # superhero # darkly
     css: styles/my-style.css
     code-copy: true
     #code-fold: false #show
