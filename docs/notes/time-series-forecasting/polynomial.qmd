@@ -243,6 +243,20 @@ def plot_predictions(df, title="Linear Regression on GDP Time Series Data"):
 
     fig.show()
 
+::: {.content-visible when-format="html"}
+```{python}
+#| echo: false
+fig.show()
+```
+:::
+
+::: {.content-visible when-format="pdf"}
+```{python}
+#| echo: false
+fig.show(renderer="png")
+```
+:::
+
 ```
 
 ```{python}

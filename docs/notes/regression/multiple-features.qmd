@@ -174,6 +174,20 @@ fig = px.imshow(cor_mat, height=600, text_auto= ".2f",
 )
 fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})
 fig.show()
+
+::: {.content-visible when-format="html"}
+```{python}
+#| echo: false
+fig.show()
+```
+:::
+
+::: {.content-visible when-format="pdf"}
+```{python}
+#| echo: false
+fig.show(renderer="png")
+```
+:::
 ```
 
 It looks like there is the highest correlation between the target (median home value) and the median income. So we will probably want to keep income as a feature in our model.

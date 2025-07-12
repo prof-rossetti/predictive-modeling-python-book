@@ -274,6 +274,20 @@ fig.add_scatter(x=chart_df["StudyHours"], y=chart_df['Grade'],
                 legendrank=2)
 
 fig.show()
+
+::: {.content-visible when-format="html"}
+```{python}
+#| echo: false
+fig.show()
+```
+:::
+
+::: {.content-visible when-format="pdf"}
+```{python}
+#| echo: false
+fig.show(renderer="png")
+```
+:::
 ```
 
 

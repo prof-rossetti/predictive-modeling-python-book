@@ -124,6 +124,34 @@ def plot_correlation_matrix(df, method="pearson", height=450):
     fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})
     fig.show()
 
+::: {.content-visible when-format="html"}
+```{python}
+#| echo: false
+fig.show()
+```
+:::
+
+::: {.content-visible when-format="pdf"}
+```{python}
+#| echo: false
+fig.show(renderer="png")
+```
+:::
+
+::: {.content-visible when-format="html"}
+```{python}
+#| echo: false
+fig.show()
+```
+:::
+
+::: {.content-visible when-format="pdf"}
+```{python}
+#| echo: false
+fig.show(renderer="png")
+```
+:::
+
 ```
 
 ```{python}

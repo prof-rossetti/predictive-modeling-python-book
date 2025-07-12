@@ -144,6 +144,20 @@ fig = px.line(y=acf_results, markers=["o"], height=400,
         labels={"x": "Number of Lags", "y":"Auto-correlation"},
 )
 fig.show()
+
+::: {.content-visible when-format="html"}
+```{python}
+#| echo: false
+fig.show()
+```
+:::
+
+::: {.content-visible when-format="pdf"}
+```{python}
+#| echo: false
+fig.show(renderer="png")
+```
+:::
 ```
 
 We see moderately high autocorrelation persists until two to four lagging periods.
