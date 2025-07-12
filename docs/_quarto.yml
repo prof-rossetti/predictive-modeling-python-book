@@ -46,6 +46,8 @@ book:
     location: sidebar # navbar, sidebar
     #type: textbox # overlay, textbox
 
+  reader-mode: true
+
   #navbar:
   #  right:
   #    - href: exercises/index.qmd
