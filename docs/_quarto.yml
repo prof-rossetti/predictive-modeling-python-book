@@ -147,8 +147,8 @@ book:
         - href: notes/classification/binary.ipynb
           text: "Binary Classification"
 
-        #- href: notes/classification/multiclass.qmd
-        #  text: "Multi-class Classification"
+        - href: notes/classification/multiclass.qmd
+          text: "Multi-class Classification"
 
         #- href: notes/classification/Spam_Detection_(Binary_Classification)_SOLUTIONS.ipynb
         #  text: "Binary Classification w/ `sklearn`"

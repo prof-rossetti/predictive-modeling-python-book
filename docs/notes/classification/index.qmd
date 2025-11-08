@@ -15,6 +15,8 @@ Some examples of discrete data include:
   + Which of nine numeric digits is represented by some handwriting (categorical)
   + Which of three families a given penguin is likely to be a member of (categorical)
 
+When the target is binary, we will perform a ["binary classification" task](./binary.ipynb). When the target is categorical, we will perform a ["multi-class classification" task](multiclass.qmd).
+
 In this chapter, we will explore different classification models, and introduce key performance metrics used to evaluate the effectiveness of classification models.
 
 
