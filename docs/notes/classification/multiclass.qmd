@@ -4,19 +4,19 @@ execute:
   cache: true # re-render only when source changes
 ---
 
-# Multi-class Classification
+# Multiclass Classification
 
 
 ## Data Loading
 
-In this chapter we will provide an example of multi-class classification, using the ["Palmer Penguins" dataset](https://github.com/mcnakhaee/palmerpenguins).
-
-Our goal will be to predict the species of a penguin, given features such as their weight, size, and gender.
+In this chapter we will provide an example of multiclass classification, using the ["Palmer Penguins" dataset](https://github.com/mcnakhaee/palmerpenguins).
 
 :::{.callout-tip title="Data Source"}
 "Size measurements, clutch observations, and blood isotope ratios for 344 adult foraging Adélie, Chinstrap, and Gentoo penguins observed on islands in the Palmer Archipelago near Palmer Station, Antarctica. Data were collected and made available by Dr. Kristen Gorman and the Palmer Station, Antarctica Long Term Ecological Research (LTER) Program."
 :::
 
+
+Our goal will be to predict the species of a penguin, given features such as their weight, size, and gender.
 
 Loading the dataset:
 
@@ -32,7 +32,7 @@ df.drop(columns=["year"], inplace=True)
 df.head()
 ```
 
-As you can see, the target variable is categorical, which makes this a multi-class classification task:
+As you can see, the target variable is categorical, which makes this a multiclass classification task:
 
 ```{python}
 df["species"].value_counts()
@@ -46,8 +46,6 @@ df["species"].value_counts()
 Checking for null values:
 
 ```{python}
-# df.info()
-
 df.isnull().sum()
 ```
 
@@ -61,34 +59,39 @@ print(len(df))
 df.dropna(inplace=True)
 
 print(len(df))
+```
+
+```{python}
 df.isnull().sum()
 ```
 
 ## Data Exploration
 
-Investigating various features:
+Investigating features, such as the `island`:
 
 ```{python}
 df["island"].value_counts()
 ```
 
+What other variables are you interested in exploring?
+
 ### Relationships
 
-Let's examine the weight of a penguin, by island, to see if we can develop an intuition for the dataset:
+Let's examine the weight of a penguin, by island, to see if we can notice any patterns in the data:
 
 ```{python}
 import plotly.express as px
 
 px.scatter(df, x="body_mass_g", y="island", color="species",
-  title="Body Mass by Penguin Species", height=350
+  title="Body Mass by Penguin Species", height=300
 )
 ```
 
 It looks like island and weight might be suitable features, as they help differentiate between the various species. Specifically we can make the following observations:
 
-  + only one species of penguin lives on "Torgersen" island
-  + two species of penguin live on "Biscoe" island, but these species are separable by their weight
-  + two species of penguin live on "Dream" island, but the data aren't separable by weight, so we might need additional features
+  + Only one species of penguin lives on "Torgersen" island.
+  + Two species of penguin live on "Biscoe" island, but these species are separable by their weight.
+  + Two species of penguin live on "Dream" island, but the data aren't separable by weight, so we might need additional features.
 
 We are starting to develop an intuition that penguins on the "Dream" island might be the hardest to classify.
 
@@ -99,7 +102,7 @@ Examining the relationships between each pair of variables:
 ```{python}
 from seaborn import pairplot
 
-pairplot(df, hue="species", height=1.5) # inches
+pairplot(df, hue="species", height=1.5) # height in inches
 ```
 
 What relationships do you notice between specific pairs of variables? Which features could potentially help us separate or differentiate members of the different classes?
@@ -188,7 +191,7 @@ What lessons are we learning about the correlation of these additional variables
 
 ## Feature Scaling
 
-Since we have multiple features, it may be helpful to scale them. Here we are using a standard scaling approach:
+Since we have multiple features, it may be helpful to scale them, to express their values using similar scales, and prevent some features from artificially overpowering the model. Here we are using a standard scaling approach:
 
 ```{python}
 x_scaled = (x - x.mean(axis=0)) / x.std(axis=0)
@@ -245,9 +248,9 @@ Getting artifacts of the training process, specifically focusing on the coeffici
 model.coef_.shape
 ```
 
-There are coefficients for each of the classes in our target variable (i.e. the features have different predictive power for different species).
+Unlike binary classification in which there are a single set of coefficients, in multiclass classification there are a different set of coefficients for each of the classes present in our target variable. In other words, each feature may contribute differently to predicting members of the different species.
 
-Wrapping the coefficients in a `DataFrame` using corresponding column and index labels will help us sort and compare them:
+Wrapping the coefficients in a `DataFrame`, using corresponding column and index labels, allows us sort and compare them:
 
 
 ```{python}
@@ -287,14 +290,22 @@ How can we interpret these coefficients?
 
 ## Model Evaluation
 
+Now it's time to evaluate the model.
+
+
+Predicting values for the unseen test data:
+
+```{python}
+y_pred = model.predict(x_test)
+```
+
 ### Classification Metrics
 
-Now it's time to evaluate the model against the test set. We are using our standard classification metrics, focusing on the classification report:
+We are using our standard classification metrics, focusing on the classification report:
 
 ```{python}
 from sklearn.metrics import classification_report
 
-y_pred = model.predict(x_test)
 print(classification_report(y_test, y_pred))
 ```
 

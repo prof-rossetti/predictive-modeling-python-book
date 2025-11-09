@@ -17,15 +17,34 @@ To illustrate binary classification, we'll use an ["Occupancy Detection" dataset
 "Experimental data used for binary classification (room occupancy) from Temperature, Humidity, Light and CO2. Ground-truth occupancy was obtained from time stamped pictures that were taken every minute."
 :::
 
+Loading the dataset:
+
 ```{python}
 from ucimlrepo import fetch_ucirepo
 
 ds = fetch_ucirepo(id=357)
 ```
 
+Inspecting the variables:
+
 ```{python}
 ds.variables
 ```
+
+:::{.callout-tip title="Data Dictionary"}
+Variable Info (paraphrased from the UCI website):
+
+  + `Date`: time in format of "year-month-day hour:minute:second"
+  + `Temperature`: in Celsius
+  + `Humidity`: relative humidity, as a percentage %
+  + `Light`: in Lux
+  + `CO2`: in ppm
+  + `HumidityRatio`: derived quantity from temperature and relative humidity, in kgwater-vapor/kg-air
+  + `Occupancy`: 0 or 1 (0 for not occupied, 1 for occupied)
+
+:::
+
+Loading the data:
 
 ```{python}
 df = ds["data"]["original"].copy()
@@ -34,22 +53,48 @@ df.drop(columns=["id"], inplace=True)
 df.head()
 ```
 
-Dropping null values:
+## Data Cleaning
+
+### Null Values
+
+Checking for nulls:
+
+```{python}
+df.isnull().sum()
+```
+
+Dropping two rows that have null values for the target variable:
 
 ```{python}
 print(len(df))
+
 df.dropna(inplace=True)
+
 print(len(df))
 ```
 
 ```{python}
+df.isnull().sum()
+```
+
+
+### Datatypes
+
+Upon investigation and performing later analysis, we learn the numerical data is actually currently in a string format (represented by pandas as an "object"):
+
+```{python}
+df.dtypes
+```
+
+So we need to clean the data before moving on:
+
+```{python}
 from pandas import to_numeric
 
-# clean datatypes / convert to numeric datatypes:
 numeric_features = ["Temperature", "Humidity", "Light", "CO2", "HumidityRatio"]
 df[numeric_features] = df[numeric_features].apply(to_numeric)
 
-df.head()
+df.dtypes
 ```
 
 
@@ -63,6 +108,8 @@ target = "Occupied"
 #df[target] = df[target].map({0: False, 1: True})
 ```
 
+As you can see, the target variable is binary, which makes this a binary classification task:
+
 ```{python}
 df[target].value_counts()
 ```
@@ -71,12 +118,14 @@ df[target].value_counts()
 ```{python}
 import plotly.express as px
 
-px.histogram(df, x=target, nbins=5, height=350,
-             title="Distribution of Occupancy"
-            )
+px.histogram(df, x=target, nbins=5, height=350, title="Distribution of Occupancy")
 ```
 
+It doesn't look like the classes are prohibitively imbalanced.
+
 ### Relationships
+
+Investigating the relationships between certain variables of interest, to start developing an intuition for the data.
 
 ```{python}
 #px.scatter(df, x="Light", y=target, height=350,
@@ -84,29 +133,37 @@ px.histogram(df, x=target, nbins=5, height=350,
 #)
 ```
 
+Plotting the distribution of light, grouped by occupancy status:
+
 ```{python}
 px.histogram(df, x="Light", nbins=7, height=350,
              facet_col=target, color=target
             )
 ```
 
+What can we learn about the relationship between light and occupancy?
+
+Plotting the distribution of temperature, grouped by occupancy status:
+
 ```{python}
 px.histogram(df, x="Temperature", nbins=7, height=350,
-             facet_col=target, #facet_col_wrap=2
-             color=target
+             facet_col=target, color=target
             )
 ```
 
+What can we learn about the relationship between temperature and occupancy?
+
+
 ### Correlation
 
-
+Helper function for plotting correlation matrix as a heatmap:
 
 ```{python}
-#|code-show: false
+#|code-fold: true
 
 import plotly.express as px
 
-def plot_correlation_matrix(df, method="pearson", height=450):
+def plot_correlation_matrix(df, method="pearson", height=450, showscale=True):
     """Params: method (str): "spearman" or "pearson". """
 
     cor_mat = df.corr(method=method, numeric_only=True)
@@ -122,17 +179,22 @@ def plot_correlation_matrix(df, method="pearson", height=450):
     )
     # center title (h/t: https://stackoverflow.com/questions/64571789/)
     fig.update_layout(title={'text': title, 'x':0.485, 'xanchor': 'center'})
+    fig.update_coloraxes(showscale=showscale)
+
     fig.show()
 
 ```
 
+Plotting correlation to gain a more formal understanding of the relationships:
+
 ```{python}
 
-# df.drop(columns=["Hour", "Minute"])
 plot_correlation_matrix(df, method="spearman", height=450)
 ```
 
-Humidity and humidity ratio are the most highly correlated features. We can consider dropping one due to collinearity concerns.
+The feature that is most highly correlated with the target is `Light`. So we should probably include that feature in our model.
+
+The features that are most highly correlated with each other are `Humidity` and `HumidityRatio`. After consulting the data dictionary in more detail, we realize that `HumidityRatio` was derived from `Temperature` and `Humidity`. So for our model, to alleviate collinearity concerns, we should either include one or more of the original features (`Temperature` and `Humidity`), or the derived feature (`HumidityRatio`), but not both.
 
 ```{python}
 corr_target = df.corr(numeric_only=True)[target].sort_values(ascending=False)
@@ -142,26 +204,42 @@ corr_target
 ## X/Y Split
 
 ```{python}
-df.columns.tolist()
+# df.columns.tolist()
 ```
+
+Choosing target and feature variables:
 
 ```{python}
 target = "Occupied"
 y = df[target].copy()
 
-x = df.drop(columns=[target, "Date"]).copy() #, "Timestamp", "Date"
+x = df.drop(columns=[target, "Date", "Humidity", "Temperature"]).copy()
 print("X:", x.shape)
 print("Y:", y.shape)
 ```
 
+```{python}
+x.head()
+```
+
 ## Feature Scaling
+
+Scaling the features, to express their values on a similar scale:
 
 ```{python}
 x_scaled = (x - x.mean(axis=0)) / x.std(axis=0)
+x_scaled.head()
+```
+
+Verifying mean centering and unit variance:
+
+```{python}
 x_scaled.describe().T[["mean", "std"]]
 ```
 
 ## Train Test Split
+
+Splitting the data into training and test sets:
 
 ```{python}
 from sklearn.model_selection import train_test_split
@@ -172,6 +250,8 @@ print("TEST:", x_test.shape, y_test.shape)
 ```
 
 ## Model Training
+
+Training the model on the training data:
 
 ```{python}
 from sklearn.linear_model import LogisticRegression
@@ -189,11 +269,17 @@ coef = Series(model.coef_[0], index=x_train.columns)
 coef.sort_values(ascending=False)
 ```
 
+What can we learn from these coefficients?
+
 ## Model Evaluation
+
+Predicting values for the unseen test data:
 
 ```{python}
 y_pred = model.predict(x_test)
 ```
+
+Evaluating the model's performance using the normal classification metrics:
 
 ```{python}
 from sklearn.metrics import classification_report
@@ -201,14 +287,19 @@ from sklearn.metrics import classification_report
 print(classification_report(y_test, y_pred))
 ```
 
+Computing the ROC-AUC score as an additional classification metric:
+
 ```{python}
 from sklearn.metrics import roc_auc_score
 
 print("ROC-AUC:", roc_auc_score(y_test, y_pred).round(3))
 ```
 
+Alright, looks like our model is doing really great overall!
 
 ### Confusion Matrix
+
+Helper function for plotting a confusion matrix as a heatmap:
 
 ```{python}
 #| code-fold: True
@@ -243,13 +334,23 @@ def plot_confusion_matrix(y_true, y_pred, height=450, showscale=False, title=Non
 
 ```
 
+Examining predicted vs actual values:
+
 
 ```{python}
 plot_confusion_matrix(y_test, y_pred, height=400)
 ```
 
+Is one of the classes getting mis-classified more than the other?
+
+
 
 ## Complexity vs Performance
+
+Now that we have an idea for the performance of a model that uses all available features, let's try different combinations of features to see if there is a simpler model that performs almost as well.
+
+Helper function for training and evaluating a model given a list of features:
+
 
 ```{python}
 #| code-fold: True
@@ -257,6 +358,7 @@ plot_confusion_matrix(y_test, y_pred, height=400)
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from pandas import Series
+from sklearn.metrics import classification_report, roc_auc_score
 
 def train_eval_logistic(df, target="Occupied", features=[]):
     if not any(features):
@@ -286,26 +388,50 @@ def train_eval_logistic(df, target="Occupied", features=[]):
     y_pred = model.predict(x_test)
 
     print(classification_report(y_test, y_pred))
-
+    print("ROC-AUC:", roc_auc_score(y_test, y_pred).round(3))
 
 ```
+
+
+Model performance using all original features:
 
 ```{python}
-train_eval_logistic(df, features=numeric_features)
+train_eval_logistic(df, features=["Light", "Temperature", "Humidity", "CO2"])
 ```
+
+Model performance using the derived feature:
+
+```{python}
+train_eval_logistic(df, features=["Light", "HumidityRatio", "CO2"])
+```
+
+
+Models using just a single-feature:
+
 
 ```{python}
 train_eval_logistic(df, features=["Light"])
 ```
 
 ```{python}
-train_eval_logistic(df, features=["Temperature"])
+train_eval_logistic(df, features=["HumidityRatio"])
 ```
 
 ```{python}
 train_eval_logistic(df, features=["CO2"])
 ```
 
+Wow it looks like `Light` is really good by itself!
+
+Models using two features (`Light` and something else):
+
 ```{python}
-train_eval_logistic(df, features=["Temperature","CO2"])
+train_eval_logistic(df, features=["Light", "HumidityRatio"])
 ```
+
+```{python}
+train_eval_logistic(df, features=["Light", "CO2"])
+```
+
+
+Which features would you choose for your final model?

@@ -143,12 +143,11 @@ book:
         #- href: notes/classification/logistic.qmd
         #  text: "Logistic Regression"
 
-        #- href: notes/classification/binary.qmd # edit the qmd and convert to ipynb for github actions:
-        - href: notes/classification/binary.ipynb
+        - href: notes/classification/binary.qmd # edit the qmd and convert to ipynb for github actions:
           text: "Binary Classification"
 
         - href: notes/classification/multiclass.qmd
-          text: "Multi-class Classification"
+          text: "Multiclass Classification"
 
         #- href: notes/classification/Spam_Detection_(Binary_Classification)_SOLUTIONS.ipynb
         #  text: "Binary Classification w/ `sklearn`"
