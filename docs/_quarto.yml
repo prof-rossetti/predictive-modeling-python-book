@@ -46,6 +46,8 @@ book:
     location: sidebar # navbar, sidebar
     #type: textbox # overlay, textbox
 
+  reader-mode: true
+
   #navbar:
   #  right:
   #    - href: exercises/index.qmd
@@ -141,12 +143,11 @@ book:
         #- href: notes/classification/logistic.qmd
         #  text: "Logistic Regression"
 
-        #- href: notes/classification/binary.qmd # edit the qmd and convert to ipynb for github actions:
-        - href: notes/classification/binary.ipynb
+        - href: notes/classification/binary.qmd # edit the qmd and convert to ipynb for github actions:
           text: "Binary Classification"
 
-        #- href: notes/classification/multiclass.qmd
-        #  text: "Multi-class Classification"
+        - href: notes/classification/multiclass.qmd
+          text: "Multiclass Classification"
 
         #- href: notes/classification/Spam_Detection_(Binary_Classification)_SOLUTIONS.ipynb
         #  text: "Binary Classification w/ `sklearn`"
@@ -222,9 +223,9 @@ format:
   html:
     # https://quarto.org/docs/output-formats/html-themes.html
     # https://bootswatch.com/
-    theme: pulse
-      #light: default #flatly
-      #dark: darkly
+    theme: # pulse
+      light: pulse # flatly # default #flatly
+      dark: cyborg # vapor # superhero # darkly
     css: styles/my-style.css
     code-copy: true
     #code-fold: false #show
