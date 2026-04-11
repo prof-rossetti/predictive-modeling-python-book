@@ -71,7 +71,7 @@ Machine learning problem formulation refers to the process of clearly defining t
 
   + **Defining the Objective**: Identifying the specific problem to solve, such as predicting future stock prices, classifying emails as spam or not, or detecting fraudulent transactions. This is the first step in understanding what the model should accomplish.
 
-  + **Choosing the Type of Problem**: Determining whether what type of approach to use (regression, classification, etc.), based on the nature of the target variable and the presence or absence of data labels.
+  + **Choosing the Type of Problem**: Determining which type of approach to use (regression, classification, etc.), based on the nature of the target variable and the presence or absence of data labels.
 
   + **Identifying Features and Labels**: Specifying the input variables (features) that the model will use to make predictions and, in the case of supervised learning, the corresponding output or target variable (label) that the model should predict.
 
