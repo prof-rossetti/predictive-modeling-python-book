@@ -77,7 +77,7 @@ Machine learning problem formulation refers to the process of clearly defining t
 
   + **Data Availability and Quality**: Assessing what data is available, its format, and whether it's sufficient for training a model. Good data is key, as noisy or incomplete data can lead to poor model performance.
 
-  + **Evaluation Metrics**: Establishing how the model's success will be measured. This could involve metrics like accuracy, precision, recall for classification problems, or r-squared or mean squared error for regression problems.
+  + **Evaluation Metrics**: Establishing how the model's success will be measured. This could involve regression metrics like "r-squared" and "mean squared error", etc., or classification metrics like "accuracy", "precision", "recall", etc. It may also involve weighing the impact of false positive results vs false negative results.
 
 ![Illustration of Mean Squared Error (MSE), a regression metric.](./../../images/mse-eq.png)
 
@@ -93,8 +93,8 @@ In practice, the process of predictive modeling can generally be broken down int
 
   2. **Model Selection**: Choose the right algorithm for the problem, whether it's a regression model, a classification model, a time-series forecasting model, etc.
 
-  3. **Model Training**: Fit the model to the data by using training datasets to find patterns and relationships.
+  3. **Model Training**: Fit the model to the training data to find patterns and relationships.
 
-  4. **Model Evaluation**: Validate the model to ensure it generalizes well to new, unseen data. This typically involves leveraging testing sets or using cross-validation techniques.
+  4. **Model Evaluation**: Validate the model against the test dataset to see how well it generalizes to new, unseen data. 
 
-  5. **Prediction and Forecasting**: Once validated, the model can be used to predict outcomes on new, unseen data, providing valuable insights for decision-making.
+  5. **Prediction and Forecasting (Inference)**: Once validated, the model can be used to predict outcomes on new, unseen data from production systems or other real world sources, providing valuable insights for decision-making.
