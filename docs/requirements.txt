@@ -14,11 +14,11 @@ jupyter-cache
 # packages required by any python code / notebooks:
 requests
 #numpy
-pandas
+pandas==2.2.2 # local and colab (202604). problematic GH Actions: 3.0.2
 openpyxl # for pandas.read_excel function
 #matplotlib
 seaborn
-plotly
+plotly==5.24.1 # <--colab | local: 6.1.1 (202604). problematic GH Actions: 6.7.0
 statsmodels==0.14.2 # used by plotly for trendline parameter
 scipy==1.14.0
 scikit-learn==1.3.2 # match colab environment
