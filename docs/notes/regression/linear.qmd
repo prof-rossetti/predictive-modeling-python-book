@@ -192,12 +192,12 @@ It is possible for us to compute our own metrics:
 
 ```{python}
 my_mae = test_set["Error"].abs().mean()
-print("MY MAE:", my_mae.round(3))
+print("MY MAE:", round(my_mae, 3))
 ```
 
 ```{python}
 my_mse = (test_set["Error"] ** 2).mean()
-print("MY MSE:", my_mse.round(1))
+print("MY MSE:", round(my_mse, 1))
 ```
 
 However more commonly we will use metric functions from the [`sklearn.metrics` submodule](https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics):
@@ -218,7 +218,7 @@ print("MSE:", round(mse,3))
 
 ```{python}
 rmse = mse ** .5
-print("RMSE:", rmse.round(3))
+print("RMSE:", round(rmse, 3))
 ```
 
 ## Inference

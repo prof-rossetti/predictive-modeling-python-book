@@ -183,7 +183,7 @@ mse = mean_squared_error(training_set["Grade"], training_set["Predictions"])
 print("MSE:", round(mse,3))
 
 rmse = mse ** .5
-print("RMSE:", rmse.round(3))
+print("RMSE:", round(rmse, 3))
 ```
 
 Remember, these metrics only tell us about the predictive accuracy on the training data, and we care more about evaluating metrics on the test set.
@@ -294,7 +294,7 @@ mse = mean_squared_error(y_test, y_pred)
 print("MSE:", round(mse,3))
 
 rmse = mse ** .5
-print("RMSE:", rmse.round(3))
+print("RMSE:", round(rmse, 3))
 ```
 
 We see the same results on the test set that we did with the `sklearn` regression implementation.
